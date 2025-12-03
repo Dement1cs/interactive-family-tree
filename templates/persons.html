@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Persons — Interactive Family Tree{% endblock %}
+
+{% block content %}
+<h2>Persons</h2>
+
+{% if people and people|length > 0 %}
+    <ul>
+        {% for p in people %}
+            <li>
+                {{ p["first_name"] }} {{ p["last_name"] or "" }}
+                {% if p["birth_date"] %}
+                    (born {{ p["birth_date"] }})
+                {% endif %}
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>No persons yet. Database is empty.</p>
+{% endif %}
+
+{% endblock %}
