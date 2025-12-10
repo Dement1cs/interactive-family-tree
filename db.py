@@ -27,9 +27,9 @@ def get_person(person_id: int):
     conn = get_db()
     cur = conn.cursor()
     cur.execute("SELECT * FROM persons WHERE id = ?", (person_id,))
-    rows = cur.fetchone()
+    row = cur.fetchone()
     conn.close()
-    return rows
+    return row
 
 def add_person(first_name, last_name=None, birth_date=None, death_date=None, gender=None, notes=None):
     conn = get_db()
@@ -43,3 +43,90 @@ def add_person(first_name, last_name=None, birth_date=None, death_date=None, gen
     )
     conn.commit()
     conn.close()
+
+def update_person(person_id, first_name, last_name=None, birth_date=None, death_date=None, gender=None, notes=None):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        UPDATE persons
+        SET first_name = ?, last_name = ?, birth_date = ?, death_date = ?, gender = ?, notes = ?
+        WHERE id = ?
+        """,
+        (first_name, last_name, birth_date, death_date, gender, notes, person_id)
+    )
+    conn.commit()
+    conn.close()
+
+
+def delete_person(person_id):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM persons WHERE id = ?", (person_id,))
+    conn.commit()
+    conn.close()
+
+def add_relationship(person_id, relative_id, relation_type):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        INSERT INTO relationship (person_id, relative_id, relation_type)
+        VALUES (?, ?, ?)
+        """,
+        (person_id, relative_id, relation_type)
+    )
+    conn.commit()
+    conn.close()
+    
+def get_parents(person_id):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT p.*
+        FROM persons p
+        JOIN relationships r ON r.person_id = p.id
+        WHERE r.relative_id = ? AND r.relation_type = 'parent'
+        """,
+        (person_id,)
+    )
+    rows = cur.fetchall()
+    conn.close()
+    return rows
+
+def get_children(person_id):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT p.*
+        FROM persons p
+        JOIN relationships r ON r.relative_id = p.id
+        WHERE r.relative_id = ? AND r.relation_type = 'parent'
+        """,
+        (person_id,)
+    )
+    rows = cur.fetchall()
+    conn.close()
+    return rows
+
+def get_spouses(person_id):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT DISTINCT p.*
+        FROM persons p
+        JOIN relationships r
+          ON (
+                (r.person_id = ? AND r.relative_id = p.id)
+             OR (r.relative_id = ? AND r.person_id = p.id)
+             )
+        WHERE r.relation_type = 'spouse'
+        """,
+        (person_id, person_id)
+    )
+    rows = cur.fetchall()
+    conn.close()
+    return rows

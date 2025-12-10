@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Edit {{ person["first_name"] }} — Interactive Family Tree{% endblock %}
+
+{% block content %}
+<h2>Edit Person</h2>
+
+<form action="{{ url_for('edit_person', person_id=person['id']) }}" method="post" class="person-form">
+    <div>
+        <label for="first_name">First name *</label><br>
+        <input type="text" id="first_name" name="first_name" required
+               value="{{ person['first_name'] }}">
+    </div>
+
+    <div>
+        <label for="last_name">Last name</label><br>
+        <input type="text" id="last_name" name="last_name"
+               value="{{ person['last_name'] or '' }}">
+    </div>
+
+    <div>
+        <label for="birth_date">Birth date</label><br>
+        <input type="date" id="birth_date" name="birth_date"
+               value="{{ person['birth_date'] or '' }}">
+    </div>
+
+    <div>
+        <label for="death_date">Death date</label><br>
+        <input type="date" id="death_date" name="death_date"
+               value="{{ person['death_date'] or '' }}">
+    </div>
+
+    <div>
+        <label for="gender">Gender</label><br>
+        <input type="text" id="gender" name="gender"
+               value="{{ person['gender'] or '' }}">
+    </div>
+
+    <div>
+        <label for="notes">Notes</label><br>
+        <textarea id="notes" name="notes" rows="3">{{ person['notes'] or '' }}</textarea>
+    </div>
+
+    <button type="submit">Save changes</button>
+</form>
+
+<p><a href="{{ url_for('person_detail', person_id=person['id']) }}">← Back to profile</a></p>
+{% endblock %}

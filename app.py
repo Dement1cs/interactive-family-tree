@@ -1,5 +1,15 @@
 from flask import Flask, render_template, request, redirect, url_for
-from db import init_db, get_all_persons, add_person, get_person
+from db import(
+    init_db, 
+    get_all_persons, 
+    add_person, 
+    get_person,
+    update_person,
+    delete_person,
+    get_parents,
+    get_children,
+    get_spouses,
+    )
 
 app = Flask(__name__)
 
@@ -38,7 +48,48 @@ def person_detail(person_id):
     person = get_person(person_id)
     if person is None:
         return "Person not found", 404
-    return render_template("person_detail.html", person=person)
+    
+    parents = get_parents(person_id)
+    children = get_children(person_id)
+    spouses = get_spouses(person_id)
+    return render_template(
+        "person_detail.html", 
+        person=person,
+        parents=parents,
+        children=children,
+        spouses=spouses
+        )
+
+@app.route("/persons/<int:person_id>/edit", methods=["GET", "POST"])
+def edit_person(person_id):
+    person = get_person(person_id)
+    if person is None:
+        return "Person is not found", 404
+    
+    if request.method == "POST":
+        first_name = request.form.get("first_name")
+        last_name = request.form.get("last_name") or None
+        birth_date = request.form.get("birth_date") or None
+        death_date = request.form.get("death_date") or None
+        gender = request.form.get("gender") or None
+        notes = request.form.get("notes") or None
+
+        if not first_name:
+            return "First name is required", 400
+        
+        update_person(person_id, first_name, last_name, birth_date, death_date, gender, notes)
+        return redirect(url_for("person_detail", person_id=person_id))
+    
+    return render_template("person_edit.html", person=person)
+
+@app.route("/persons/<int:person_id>/delete", methods=["POST"])
+def delete_person_route(person_id):
+    person = get_person(person_id)
+    if person is None:
+        return "Person not found", 404
+    
+    delete_person(person_id)
+    return redirect(url_for("persons"))
 
 @app.route("/init-db")
 def init_db_route():
