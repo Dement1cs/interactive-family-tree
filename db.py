@@ -67,11 +67,12 @@ def delete_person(person_id):
     conn.close()
 
 def add_relationship(person_id, relative_id, relation_type):
+    """Добавляет связь между двумя людьми"""
     conn = get_db()
     cur = conn.cursor()
     cur.execute(
         """
-        INSERT INTO relationship (person_id, relative_id, relation_type)
+        INSERT INTO relationships (person_id, relative_id, relation_type)
         VALUES (?, ?, ?)
         """,
         (person_id, relative_id, relation_type)
@@ -80,6 +81,7 @@ def add_relationship(person_id, relative_id, relation_type):
     conn.close()
     
 def get_parents(person_id):
+    """Возвращает список родителей для данного человека"""
     conn = get_db()
     cur = conn.cursor()
     cur.execute(
@@ -103,7 +105,7 @@ def get_children(person_id):
         SELECT p.*
         FROM persons p
         JOIN relationships r ON r.relative_id = p.id
-        WHERE r.relative_id = ? AND r.relation_type = 'parent'
+        WHERE r.person_id = ? AND r.relation_type = 'parent'
         """,
         (person_id,)
     )

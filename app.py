@@ -6,6 +6,7 @@ from db import(
     get_person,
     update_person,
     delete_person,
+    add_relationship,
     get_parents,
     get_children,
     get_spouses,
@@ -52,13 +53,14 @@ def person_detail(person_id):
     parents = get_parents(person_id)
     children = get_children(person_id)
     spouses = get_spouses(person_id)
+
     return render_template(
         "person_detail.html", 
         person=person,
         parents=parents,
         children=children,
-        spouses=spouses
-        )
+        spouses=spouses,
+    )
 
 @app.route("/persons/<int:person_id>/edit", methods=["GET", "POST"])
 def edit_person(person_id):
@@ -81,6 +83,63 @@ def edit_person(person_id):
         return redirect(url_for("person_detail", person_id=person_id))
     
     return render_template("person_edit.html", person=person)
+
+@app.route("/persons/<int:person_id>/relations/add", methods=["GET", "POST"])
+def add_relation(person_id):
+    person = get_person(person_id)
+    if person is None:
+        return "Person not found", 404
+
+    people = get_all_persons()
+
+    if request.method == "POST":
+        relation_type = request.form.get("relation_type")
+        relative_id = request.form.get("relative_id")
+
+        if not relation_type or not relative_id:
+            return "Relation type and relative are required", 400
+
+        try:
+            relative_id = int(relative_id)
+        except ValueError:
+            return "Invalid relative id", 400
+
+        # защита от самосвязи
+        if relative_id == person_id:
+            return "Cannot create relation with self", 400
+
+        if relation_type == "parent":
+            # relative = родитель current
+            add_relationship(
+                person_id=relative_id,
+                relative_id=person_id,
+                relation_type="parent"
+            )
+        elif relation_type == "child":
+            # relative = ребёнок current
+            add_relationship(
+                person_id=person_id,
+                relative_id=relative_id,
+                relation_type="parent"
+            )
+        elif relation_type == "spouse":
+            # супруги — симметрично
+            add_relationship(
+                person_id=person_id,
+                relative_id=relative_id,
+                relation_type="spouse"
+            )
+            add_relationship(
+                person_id=relative_id,
+                relative_id=person_id,
+                relation_type="spouse"
+            )
+        else:
+            return "Unknown relation type", 400
+
+        return redirect(url_for("person_detail", person_id=person_id))
+
+    return render_template("relation_add.html", person=person, people=people)
 
 @app.route("/persons/<int:person_id>/delete", methods=["POST"])
 def delete_person_route(person_id):

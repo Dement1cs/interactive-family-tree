@@ -46,7 +46,10 @@
 
     <div class="person-body">
         <section class="person-section">
-            <h3>Relations</h3>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3>Relations</h3>
+                <a href="{{ url_for('add_relation', person_id=person['id']) }}">Add relation</a>
+            </div>
 
             <h4>Parents</h4>
             {% if parents and parents|length > 0 %}
