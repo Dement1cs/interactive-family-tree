@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Add Person — Interactive Family Tree{% endblock %}
+
+{% block content %}
+<h2>Add Person</h2>
+
+<form action="{{ url_for('add_person_route') }}" method="post" class="person-form">
+    <div>
+        <label for="first_name">First name *</label><br>
+        <input type="text" id="first_name" name="first_name" required>
+    </div>
+
+    <div>
+        <label for="last_name">Last name</label><br>
+        <input type="text" id="last_name" name="last_name">
+    </div>
+
+    <div>
+        <label for="birth_date">Birth date</label><br>
+        <input type="date" id="birth_date" name="birth_date">
+    </div>
+
+    <div>
+        <label for="death_date">Death date</label><br>
+        <input type="date" id="death_date" name="death_date">
+    </div>
+
+    <div>
+        <label for="gender">Gender</label><br>
+        <input type="text" id="gender" name="gender" placeholder="male / female">
+    </div>
+
+    <div>
+        <label for="notes">Notes</label><br>
+        <textarea id="notes" name="notes" rows="3"></textarea>
+    </div>
+
+    <button type="submit">Save</button>
+</form>
+
+<p><a href="{{ url_for('persons') }}">Back to list</a></p>
+{% endblock %}

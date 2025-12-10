@@ -1,0 +1,54 @@
+.person-detail {
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
+.person-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.person-avatar {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: #2563eb22;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    font-weight: bold;
+    color: #2563eb;
+}
+
+.person-main-info h2 {
+    margin: 0 0 4px 0;
+}
+
+.person-dates,
+.person-gender {
+    margin: 0;
+    color: #555;
+    font-size: 0.95rem;
+}
+
+.person-body {
+    margin-top: 10px;
+}
+
+.person-section {
+    margin-bottom: 16px;
+}
+
+.person-section h3 {
+    margin-bottom: 4px;
+}
+
+.muted {
+    color: #888;
+    font-size: 0.9rem;
+}

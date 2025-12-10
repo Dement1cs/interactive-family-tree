@@ -22,3 +22,24 @@ def get_all_persons():
     rows = cur.fetchall()
     conn.close()
     return rows
+
+def get_person(person_id: int):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM persons WHERE id = ?", (person_id,))
+    rows = cur.fetchone()
+    conn.close()
+    return rows
+
+def add_person(first_name, last_name=None, birth_date=None, death_date=None, gender=None, notes=None):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        INSERT INTO persons (first_name, last_name, birth_date, death_date, gender, notes)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        (first_name, last_name, birth_date, death_date, gender, notes)
+    )
+    conn.commit()
+    conn.close()

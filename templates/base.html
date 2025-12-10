@@ -3,21 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <title>{% block title %}Interactive Family Tree{% endblock %}</title>
-    <link rel="styleheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 
 <body>
-    <header>
-        <h1>Interactive Family Tree</h1>
-        <nav>
-            <a href="{{ url_for('index') }}">Home</a>
-            <a href="{{ url_for('index') }}">Family Tree</a>
-        </nav>
-
+    <header class="main-header">
+        <div class="container">
+            <h1>Interactive Family Tree</h1>
+            <nav>
+                <a href="{{ url_for('index') }}">Home</a>
+                <a href="{{ url_for('index') }}">Family Tree</a>
+                <a href="{{ url_for('persons') }}">Persons</a>
+            </nav>
+        </div>
     </header>
 
-    <main>
-        {% block content %}{% endblock %}
+    <main class = "main-content container">
+        <div class="conteiner">
+            {% block content %}{% endblock %}
+        </div>
     </main>
+
+    <footer class="main-footer">
+        <div class="container">
+            <p>© 2025 Interactive Family Tree</p>
+        </div>
+    </footer>
+
 </body>
 </html>

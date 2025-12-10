@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {{ person["first_name"] }} {{ person["last_name"] or "" }} — Profile
+{% endblock %}
+
+{% block content %}
+<div class="person-detail">
+
+    <div class="person-header">
+        <div class="person-avatar">
+            <!-- заглушка -->
+            <span class="avatar-initials">
+                {{ person["first_name"][0] }}{% if person["last_name"] %}{{ person["last_name"][0] }}{% endif %}
+            </span>
+        </div>
+
+        <div class="person-main-info">
+            <h2>{{ person["first_name"] }} {{ person["last_name"] or "" }}</h2>
+
+            <p class="person-dates">
+                {% if person["birth_date"] %}
+                    Born: {{ person["birth_date"] }}
+                {% endif %}
+                {% if person["death_date"] %}
+                    &nbsp;•&nbsp; Died: {{ person["death_date"] }}
+                {% endif %}
+            </p>
+
+            {% if person["gender"] %}
+                <p class="person-gender">Gender: {{ person["gender"] }}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="person-body">
+        <section class="person-section">
+            <h3>Description</h3>
+            {% if person["notes"] %}
+                <p>{{ person["notes"] }}</p>
+            {% else %}
+                <p class="muted">No description yet.</p>
+            {% endif %}
+        </section>
+
+        <section class="person-section">
+            <h3>Relations</h3>
+            <p class="muted">
+                Relations will be shown here later (parents, children, spouse).
+            </p>
+        </section>
+
+        <section class="person-section">
+            <h3>Photo Gallery</h3>
+            <p class="muted">
+                Photo gallery placeholder. In the future this section can show uploaded photos.
+            </p>
+        </section>
+    </div>
+
+    <p>
+        <a href="{{ url_for('persons') }}">← Back to list</a>
+    </p>
+</div>
+{% endblock %}
