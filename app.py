@@ -10,6 +10,8 @@ from db import(
     get_parents,
     get_children,
     get_spouses,
+    get_siblings,
+    get_grandparents,
     )
 
 app = Flask(__name__)
@@ -44,6 +46,7 @@ def add_person_route():
         return redirect(url_for("persons"))
     return render_template("person_add.html")
 
+# ДЕТАЛИ ================
 @app.route("/persons/<int:person_id>")
 def person_detail(person_id):
     person = get_person(person_id)
@@ -53,6 +56,8 @@ def person_detail(person_id):
     parents = get_parents(person_id)
     children = get_children(person_id)
     spouses = get_spouses(person_id)
+    siblings = get_siblings(person_id)
+    grandparents = get_grandparents(person_id)
 
     return render_template(
         "person_detail.html", 
@@ -60,6 +65,8 @@ def person_detail(person_id):
         parents=parents,
         children=children,
         spouses=spouses,
+        siblings=siblings,
+        grandparents=grandparents,
     )
 
 @app.route("/persons/<int:person_id>/edit", methods=["GET", "POST"])

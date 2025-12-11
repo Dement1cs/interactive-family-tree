@@ -132,3 +132,34 @@ def get_spouses(person_id):
     rows = cur.fetchall()
     conn.close()
     return rows
+
+def get_siblings(person_id):
+    """Возвращает список братьев/сестер для данного человека"""
+    parents = get_parents(person_id)
+    if not parents:
+        return []
+
+    seen = {}
+    for parent in parents:
+        children = get_children(parent["id"])
+        for child in children:
+            if child["id"] == person_id:
+                continue
+            # dedupe по id, но храним целую строку
+            seen[child["id"]] = child
+
+    return list(seen.values())
+
+def get_grandparents(person_id):
+    """Возвращает список бабушек/дедушек для данного человека"""
+    parents = get_parents(person_id)
+    if not parents:
+        return []
+
+    seen = {}
+    for parent in parents:
+        gps = get_parents(parent["id"])
+        for gp in gps:
+            seen[gp["id"]] = gp
+
+    return list(seen.values())

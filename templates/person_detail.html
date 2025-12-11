@@ -66,6 +66,21 @@
                 <p class="muted">No parents linked yet.</p>
             {% endif %}
 
+            <h4>Siblings</h4>
+            {% if siblings and siblings|length > 0 %}
+                <ul>
+                {% for s in siblings %}
+                    <li>
+                        <a href="{{ url_for('person_detail', person_id=s['id']) }}">
+                            {{ s["first_name"] }} {{ s["last_name"] or "" }}
+                        </a>
+                    </li>
+                {% endfor %}
+                </ul>
+            {% else %}
+                <p class="muted">No siblings detected.</p>
+            {% endif %}
+
             <h4>Children</h4>
             {% if children and children|length > 0 %}
                 <ul>
@@ -95,7 +110,24 @@
             {% else %}
                 <p class="muted">No spouse linked yet.</p>
             {% endif %}
+
+            <h4>Grandparents</h4>
+            {% if grandparents and grandparents|length > 0 %}
+                <ul>
+                {% for gp in grandparents %}
+                    <li>
+                        <a href="{{ url_for('person_detail', person_id=gp['id']) }}">
+                            {{ gp["first_name"] }} {{ gp["last_name"] or "" }}
+                        </a>
+                    </li>
+                {% endfor %}
+                </ul>
+            {% else %}
+                <p class="muted">No grandparents detected.</p>
+            {% endif %}
         </section>
+
+        
 
         <!-- Description -->
         <section class="person-section">
