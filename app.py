@@ -14,21 +14,26 @@ from db import(
     get_grandparents,
     )
 
+# Основное приложение Flask
 app = Flask(__name__)
 
+# ====== Главная страница ======
 @app.route("/")
 def index():
     return render_template("index.html")
 
+# ====== Тут удет дерево ======
 @app.route("/tree")
 def tree():
     return render_template("tree.html")
 
+# ====== Список всех людей ======
 @app.route("/persons")
 def persons():
     people = get_all_persons()
     return render_template("persons.html", people=people)
 
+# ====== ДОБАВИТЬ ЧЕЛОВЕКА ======
 @app.route('/persons/add', methods=["GET", "POST"])
 def add_person_route():
     if request.method == "POST":
@@ -39,20 +44,23 @@ def add_person_route():
         gender = request.form.get("gender") or None
         notes = request.form.get("notes") or None
 
+        #нет имени, нет человека
         if not first_name:
             return "First nemae is required", 400
         
         add_person(first_name, last_name, birth_date, death_date, gender, notes)
+        # После добавления перенаправляем на список всех людей
         return redirect(url_for("persons"))
     return render_template("person_add.html")
 
-# ДЕТАЛИ ================
+# ====== ДЕТАЛИ ПРОФИЛЬ ЧЕЛОВЕКА ======
 @app.route("/persons/<int:person_id>")
 def person_detail(person_id):
     person = get_person(person_id)
     if person is None:
         return "Person not found", 404
     
+    # Получаем все необходимые связи из db
     parents = get_parents(person_id)
     children = get_children(person_id)
     spouses = get_spouses(person_id)
@@ -69,8 +77,12 @@ def person_detail(person_id):
         grandparents=grandparents,
     )
 
+# ====== Редактирование данных человека ======
 @app.route("/persons/<int:person_id>/edit", methods=["GET", "POST"])
 def edit_person(person_id):
+
+    #GET показать форму с уже заполненными данными
+    #POST сохранить изменения в базе
     person = get_person(person_id)
     if person is None:
         return "Person is not found", 404
@@ -91,8 +103,13 @@ def edit_person(person_id):
     
     return render_template("person_edit.html", person=person)
 
+# ====== Добавление связи ======
 @app.route("/persons/<int:person_id>/relations/add", methods=["GET", "POST"])
 def add_relation(person_id):
+
+    #Parent выбранный человек будет родителем текущего
+    #Spouse в обе стороны
+
     person = get_person(person_id)
     if person is None:
         return "Person not found", 404
@@ -148,6 +165,7 @@ def add_relation(person_id):
 
     return render_template("relation_add.html", person=person, people=people)
 
+# ====== Удаление человека ======
 @app.route("/persons/<int:person_id>/delete", methods=["POST"])
 def delete_person_route(person_id):
     person = get_person(person_id)
@@ -157,10 +175,12 @@ def delete_person_route(person_id):
     delete_person(person_id)
     return redirect(url_for("persons"))
 
+# ====== Инициализация базы данных ======
 @app.route("/init-db")
 def init_db_route():
     init_db()
     return "Database initialized."
 
+# Точка входа
 if __name__ == "__main__":
     app.run(debug=True)
