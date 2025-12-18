@@ -8,6 +8,8 @@ def get_db():
     return conn
 
 def init_db():
+
+
     conn = get_db()
     with open("schema.sql", "r", encoding="utf-8") as f:
         sql = f.read()
@@ -15,6 +17,7 @@ def init_db():
     conn.commit()
     conn.close()
 
+# Возвращает список всех людей из таблицы persons
 def get_all_persons():
     conn = get_db()
     cur = conn.cursor()
@@ -23,6 +26,7 @@ def get_all_persons():
     conn.close()
     return rows
 
+# Возвращает ОДНУ запись о человеке по его id
 def get_person(person_id: int):
     conn = get_db()
     cur = conn.cursor()
@@ -31,6 +35,7 @@ def get_person(person_id: int):
     conn.close()
     return row
 
+# Добавляет нового человека
 def add_person(first_name, last_name=None, birth_date=None, death_date=None, gender=None, notes=None):
     conn = get_db()
     cur = conn.cursor()
@@ -44,6 +49,7 @@ def add_person(first_name, last_name=None, birth_date=None, death_date=None, gen
     conn.commit()
     conn.close()
 
+# Обновляет данные о человеке с указанным id
 def update_person(person_id, first_name, last_name=None, birth_date=None, death_date=None, gender=None, notes=None):
     conn = get_db()
     cur = conn.cursor()
@@ -58,7 +64,7 @@ def update_person(person_id, first_name, last_name=None, birth_date=None, death_
     conn.commit()
     conn.close()
 
-
+# Удаляет человека по id из таблицы persons
 def delete_person(person_id):
     conn = get_db()
     cur = conn.cursor()
@@ -67,7 +73,10 @@ def delete_person(person_id):
     conn.close()
 
 def add_relationship(person_id, relative_id, relation_type):
-    """Добавляет связь между двумя людьми"""
+    """Добавляет связь между двумя людьми
+        person_id   - основной человек в связи
+        relative_id - связанный с ним родственник
+    """
     conn = get_db()
     cur = conn.cursor()
     cur.execute(
@@ -81,7 +90,12 @@ def add_relationship(person_id, relative_id, relation_type):
     conn.close()
     
 def get_parents(person_id):
-    """Возвращает список родителей для данного человека"""
+    """Возвращает список родителей для данного человека
+    
+    relative_id = person_id и relation_type = 'parent'.
+    В этих связях person_id - и есть родитель.
+    
+    """
     conn = get_db()
     cur = conn.cursor()
     cur.execute(
@@ -114,6 +128,11 @@ def get_children(person_id):
     return rows
 
 def get_spouses(person_id):
+
+    """
+    Возвращает список супругов для данного человека
+    связь симметрична.
+    """
     conn = get_db()
     cur = conn.cursor()
     cur.execute(
@@ -134,7 +153,14 @@ def get_spouses(person_id):
     return rows
 
 def get_siblings(person_id):
-    """Возвращает список братьев/сестер для данного человека"""
+    """Возвращает список братьев/сестер для данного человека
+    два человека считаются siblings, если у них есть хотя бы один общий родитель
+    
+    Берём всех родителей person_id (get_parents)
+    Для каждого родителя берём его детей (get_children)
+    Собираем всех таких детей в словарь по id чтобы убрать дубликаты
+    Исключаем самого person_id.
+    """
     parents = get_parents(person_id)
     if not parents:
         return []
@@ -151,7 +177,12 @@ def get_siblings(person_id):
     return list(seen.values())
 
 def get_grandparents(person_id):
-    """Возвращает список бабушек/дедушек для данного человека"""
+    """Возвращает список бабушек/дедушек для данного человека
+    Берём родителей person_id.
+    Для каждого родителя вызываем get_parents(parent_id).
+    Все найденные родители родителей добавляем в словарь по id
+        
+    """
     parents = get_parents(person_id)
     if not parents:
         return []
