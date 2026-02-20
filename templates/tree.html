@@ -2,5 +2,15 @@
 
 {% block content %}
 <h2>Your Family Tree</h2>
-<p>Visualization coming soon...</p>
+
+<script src="https://unpkg.com/gojs/release/go.js"></script>
+
+<div id="diagramDiv" style="width:100%; height:600px; border:1px solid #ccc;"></div>
+
+<script>
+  // даст строку вида "/persons/0"
+  window.PERSON_URL_TEMPLATE = "{{ url_for('person_detail', person_id=0) }}";
+</script>
+
+<script src="{{ url_for('static', filename='js/tree.js') }}"></script>
 {% endblock %}

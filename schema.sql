@@ -18,3 +18,4 @@ CREATE TABLE IF NOT EXISTS relationships (
     FOREIGN KEY (person_id) REFERENCES persons(id),
     FOREIGN KEY (relative_id) REFERENCES persons(id)
 );
+

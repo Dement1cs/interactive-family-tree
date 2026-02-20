@@ -1,5 +1,6 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, jsonify
 from db import(
+    get_db,
     init_db, 
     get_all_persons, 
     add_person, 
@@ -12,6 +13,7 @@ from db import(
     get_spouses,
     get_siblings,
     get_grandparents,
+    
     )
 
 # Основное приложение Flask
@@ -175,6 +177,37 @@ def delete_person_route(person_id):
     delete_person(person_id)
     return redirect(url_for("persons"))
 
+@app.route("/api/persons")
+def api_persons():
+    db = get_db()
+    persons = db.execute("SELECT id, first_name, last_name, birth_date, death_date, notes FROM persons").fetchall()
+    return jsonify([dict(p) for p in persons])
+
+@app.route("/api/tree")
+def api_tree():
+    db = get_db()
+
+    persons = db.execute("""
+        SELECT id, first_name, last_name, birth_date, death_date, notes
+        FROM persons
+    """).fetchall()
+
+    relationships = db.execute("""
+        SELECT person_id, relative_id, relation_type
+        FROM relationships
+    """).fetchall()
+
+    return jsonify({
+        "persons": [dict(p) for p in persons],
+        "relationships": [dict(r) for r in relationships]
+    })
+
+@app.route("/api/tables")
+def api_tables():
+    db = get_db()
+    rows = db.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+    return jsonify([r["name"] if isinstance(r, dict) else r[0] for r in rows])
+ 
 # ====== Инициализация базы данных ======
 @app.route("/init-db")
 def init_db_route():

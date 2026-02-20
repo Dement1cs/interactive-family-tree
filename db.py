@@ -68,6 +68,12 @@ def update_person(person_id, first_name, last_name=None, birth_date=None, death_
 def delete_person(person_id):
     conn = get_db()
     cur = conn.cursor()
+    #удалить все связи, где участвует этот человек 
+    cur.execute(
+        "DELETE FROM relationships WHERE person_id = ? OR relative_id = ?",
+        (person_id, person_id)
+    )
+    #удалить самого человека
     cur.execute("DELETE FROM persons WHERE id = ?", (person_id,))
     conn.commit()
     conn.close()
