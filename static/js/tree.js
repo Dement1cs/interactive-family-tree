@@ -129,8 +129,13 @@
 
     // --- Узлы людей для GoJS ---
     const personNodes = persons.map(p => {
+      // Имя + фамилия (если пусто — "Person #id")
       const fullName = (`${p.first_name || ""} ${p.last_name || ""}`).trim() || `Person #${p.id}`;
+      
+      // Даты: "birth – death" (если есть)
       const lifeLine = [p.birth_date || "", p.death_date || ""].filter(Boolean).join(" – ");
+      
+      // key обязателен: это id узла
       return { key: p.id, category: "", fullName, lifeLine };
     });
 
@@ -139,15 +144,22 @@
     // Build spouse pairs: Set("min:max")
     const spousePairs = new Set();
 
+    // Разбираем все связи: родитель/ребёнок и супруги
     for (const r of relationships) {
+      // person_id = родитель, relative_id = ребёнок
       if (r.relation_type === "parent") { //только записи родитель-ребёнок
         const parentId = r.person_id;
         const childId = r.relative_id;
+
+        // Создаём Set родителей для ребёнка, если ещё нет
         if (!parentsOf.has(childId)) parentsOf.set(childId, new Set()); //есть ли уже запись для этого ребёнка
         parentsOf.get(childId).add(parentId);
       } else if (r.relation_type === "spouse") {
+        // person_id и relative_id = супруги
         const a = r.person_id;
         const b = r.relative_id;
+
+        // Проверки от мусора
         if (a != null && b != null && a !== b) {
           const [x, y] = normalizePair(a, b);
           spousePairs.add(`${x}:${y}`);
@@ -155,27 +167,32 @@
       }
     }
 
-    // Объединение узлов и связей
+    // --- Тут будут храниться union-узлы и связи ---
     const unionNodes = [];
     const links = [];
 
-    // Вспомогательная функция: убедиться в существовании узла объединения и связать с ним супругов.
+    // Чтобы не создавать один и тот же union 10 раз
     const createdUnions = new Set();
 
+    // Создаёт union-узел и соединяет супругов с ним (если ещё не создан)
     function ensureUnion(a, b) {
       const key = unionKey(a, b);
+
       if (!createdUnions.has(key)) {
         createdUnions.add(key);
+
+        // Добавляем точку союза
         unionNodes.push({ key, category: "Union" });
 
-        // Супружеские связи (человек -> союз)
+        // Связи супругов к этой точке
         links.push({ from: a, to: key, category: "Spouse" });
         if (b != null) links.push({ from: b, to: key, category: "Spouse" });
       }
       return key;
     }
 
-    // Создавайте союзы из пар супругов. (даже если детей нет — красиво)
+    // Создавайте союзы из пар супругов. 
+    // 1) Сначала создаём союзы из данных "spouse"
     //for (const pair of spousePairs) {
     //  const [xStr, yStr] = pair.split(":");
     //  const x = Number(xStr);
@@ -187,25 +204,34 @@
     // Правило:
     // - 2+ родителей: берём первых двух (по возрастанию) и делаем union (даже если нет spouse)
     // - 1 родитель: union с "none"
+    
+    // 2) Потом цепляем детей к союзу родителей
     for (const [childId, parentSet] of parentsOf.entries()) {
       const parents = Array.from(parentSet).sort((a, b) => a - b);
 
       let uKey;
       if (parents.length >= 2) {
+        // если родителей 2+ — берём первых двух
         uKey = ensureUnion(parents[0], parents[1]);
       } else if (parents.length === 1) {
+        // если родитель один — создаём союз "родитель + none"
         uKey = ensureUnion(parents[0], null);
       } else {
         continue;
       }
 
+      // Связь "union -> ребёнок"
       links.push({ from: uKey, to: childId, category: "ParentChild" });
     }
 
     // Final model
+    // Собираем все узлы вместе: люди + union-точки
     const nodes = [...personNodes, ...unionNodes];
+
+    // Отдаём GoJS модель: nodes + links
     diagram.model = new go.GraphLinksModel(nodes, links);
 
+    // Авто-зум, чтобы всё поместилось на экран
     diagram.zoomToFit();
 
   } catch (err) {
