@@ -1,5 +1,34 @@
 {% extends "base.html" %}
 
+<!-- разделение на муж и жен -->
+{% macro role_label(kind, gender) -%}
+    {%- set g = (gender or '')|lower -%}
+    {%- if kind == 'parent' -%}
+        {{ 'Father' if g == 'male' else ('Mother' if g == 'female' else 'Parent') }}
+    {%- elif kind == 'child' -%}
+        {{ 'Son' if g == 'male' else ('Daughter' if g == 'female' else 'Child') }}
+    {%- elif kind == 'sibling' -%}
+        {{ 'Brother' if g == 'male' else ('Sister' if g == 'female' else 'Sibling') }}
+    {%- elif kind == 'grandparent' -%}
+        {{ 'Grandfather' if g == 'male' else ('Grandmother' if g == 'female' else 'Grandparent') }}
+    {%- else -%}
+        Person
+    {%- endif -%}
+{%- endmacro %}
+
+<!-- связи видемы и нет -->
+<!--{% set has_any =
+    (parents and parents|length>0) or
+    (siblings and siblings|length>0) or
+    (children and children|length>0) or
+    (spouses and spouses|length>0) or
+    (grandparents and grandparents|length>0)
+%}
+
+{% if not has_any %}
+<p class="muted">No relations linked yet.</p>
+{% endif %}-->
+
 {% block title %}
     {{ person["first_name"] }} {{ person["last_name"] or "" }} — Profile
 {% endblock %}
@@ -51,53 +80,39 @@
                 <a href="{{ url_for('add_relation', person_id=person['id']) }}">Add relation</a>
             </div>
 
-            <h4>Parents</h4>
             {% if parents and parents|length > 0 %}
+                <h4>Parents</h4>
                 <ul>
-                {% for p in parents %}
-                    <li>
-                        <a href="{{ url_for('person_detail', person_id=p['id']) }}">
-                            {{ p["first_name"] }} {{ p["last_name"] or "" }}
-                        </a>
-                    </li>
-                {% endfor %}
+                    {% for p in parents %}
+                        <li>{{ role_label('parent', p['gender']) }}: <a href="{{ url_for('person_detail', person_id=p['id']) }}">{{ p['first_name'] }} {{ p['last_name'] }}</a></li>
+                    {% endfor %}
                 </ul>
-            {% else %}
-                <p class="muted">No parents linked yet.</p>
             {% endif %}
 
-            <h4>Siblings</h4>
             {% if siblings and siblings|length > 0 %}
+                <h4>Siblings</h4>
                 <ul>
-                {% for s in siblings %}
-                    <li>
-                        <a href="{{ url_for('person_detail', person_id=s['id']) }}">
-                            {{ s["first_name"] }} {{ s["last_name"] or "" }}
-                        </a>
-                    </li>
-                {% endfor %}
+                    {% for s in siblings %}
+                        <li>{{ role_label('sibling', s['gender']) }}: <a href="{{ url_for('person_detail', person_id=s['id']) }}">{{ s['first_name'] }} {{ s['last_name'] }}</a></li>
+                    {% endfor %}
                 </ul>
             {% else %}
-                <p class="muted">No siblings detected.</p>
+                <!--<p class="muted">No siblings detected.</p>-->
             {% endif %}
 
-            <h4>Children</h4>
             {% if children and children|length > 0 %}
+                <h4>Children</h4>
                 <ul>
-                {% for c in children %}
-                    <li>
-                        <a href="{{ url_for('person_detail', person_id=c['id']) }}">
-                            {{ c["first_name"] }} {{ c["last_name"] or "" }}
-                        </a>
-                    </li>
-                {% endfor %}
+                    {% for c in children %}
+                        <li>{{ role_label('child', c['gender']) }}: <a href="{{ url_for('person_detail', person_id=c['id']) }}">{{ c['first_name'] }} {{ c['last_name'] }}</a></li>
+                    {% endfor %}
                 </ul>
             {% else %}
-                <p class="muted">No children linked yet.</p>
+                <!--<p class="muted">No children linked yet.</p>-->
             {% endif %}
 
-            <h4>Spouse</h4>
             {% if spouses and spouses|length > 0 %}
+                <h4>Spouse</h4>
                 <ul>
                 {% for s in spouses %}
                     <li>
@@ -108,22 +123,18 @@
                 {% endfor %}
                 </ul>
             {% else %}
-                <p class="muted">No spouse linked yet.</p>
+                <!--<p class="muted">No spouse linked yet.</p>-->
             {% endif %}
 
-            <h4>Grandparents</h4>
             {% if grandparents and grandparents|length > 0 %}
+            <h4>Grandparents</h4>
                 <ul>
-                {% for gp in grandparents %}
-                    <li>
-                        <a href="{{ url_for('person_detail', person_id=gp['id']) }}">
-                            {{ gp["first_name"] }} {{ gp["last_name"] or "" }}
-                        </a>
-                    </li>
-                {% endfor %}
+                    {% for g in grandparents %}
+                        <li>{{ role_label('grandparent', g['gender']) }}: <a href="{{ url_for('person_detail', person_id=g['id']) }}">{{ g['first_name'] }} {{ g['last_name'] }}</a></li>
+                    {% endfor %}
                 </ul>
             {% else %}
-                <p class="muted">No grandparents detected.</p>
+                <!--<p class="muted">No grandparents detected.</p>
             {% endif %}
         </section>
 

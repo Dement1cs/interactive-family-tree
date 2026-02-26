@@ -32,8 +32,11 @@
 
     <div>
         <label for="gender">Gender</label><br>
-        <input type="text" id="gender" name="gender"
-               value="{{ person['gender'] or '' }}">
+        <select name="gender" id="gender">
+            <option value="" {{ (person["gender"] or "") == "" and "selected" or "" }}>Unknown</option>
+            <option value="male" {{ (person["gender"] or "") == "male" and "selected" or "" }}>Male</option>
+            <option value="female" {{ (person["gender"] or "") == "female" and "selected" or "" }}>Female</option>
+        </select>
     </div>
 
     <div>
