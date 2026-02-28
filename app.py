@@ -13,7 +13,7 @@ from db import(
     get_spouses,
     get_siblings,
     get_grandparents,
-    
+    search_persons
     )
 
 # Основное приложение Flask
@@ -182,6 +182,21 @@ def api_persons():
     db = get_db()
     persons = db.execute("SELECT id, first_name, last_name, birth_date, death_date, notes FROM persons").fetchall()
     return jsonify([dict(p) for p in persons])
+
+# ========== Поиск ============
+@app.route("/api/persons/search")
+def api_person_search():
+    # Берём параметр q из URL: /api/persons/search?q=...
+    q = request.args.get("q", "").strip()
+
+    # пустой запрос — пустой список
+    if not q:
+        return jsonify([])
+
+    # Ищем людей в базе (ограничиваем 10 результатами)
+    results = search_persons(q, limit=20)
+
+    return jsonify([dict(r) for r in results])
 
 @app.route("/api/tree")
 def api_tree():

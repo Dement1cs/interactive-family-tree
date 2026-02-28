@@ -78,6 +78,31 @@ def delete_person(person_id):
     conn.commit()
     conn.close()
 
+# Поиск
+def search_persons(query, limit=10):
+    conn = get_db()
+    cur = conn.cursor()
+
+    q = (query or "").strip()
+    if not q:
+        conn.close()
+        return []
+
+    like = f"%{q}%"
+    cur.execute("""
+        SELECT id, first_name, last_name, gender
+        FROM persons
+        WHERE first_name LIKE ?
+           OR last_name LIKE ?
+           OR (first_name || ' ' || IFNULL(last_name, '')) LIKE ?
+        ORDER BY first_name ASC
+        LIMIT ?
+    """, (like, like, like, limit))
+
+    rows = cur.fetchall()
+    conn.close()
+    return rows
+
 def add_relationship(person_id, relative_id, relation_type):
     """Добавляет связь между двумя людьми
         person_id   - основной человек в связи

@@ -16,22 +16,122 @@
         </select>
     </div>
 
-    <div>
-        <label for="relative_id">Relative</label><br>
-        <select id="relative_id" name="relative_id" required>
-            <option value="">-- choose person --</option>
-            {% for p in people %}
-                {% if p["id"] != person["id"] %}
-                    <option value="{{ p['id'] }}">
-                        {{ p["first_name"] }} {{ p["last_name"] or "" }}
-                    </option>
-                {% endif %}
-            {% endfor %}
-        </select>
-    </div>
+    <label for="relative_search">Select person</label><br>
 
+    <!-- Поле ввода: пользователь печатает имя человека -->
+    <input
+        type="text" 
+        id="relative_search" 
+        placeholder="Type a name..." 
+        autocomplete="off"
+    >
+
+    <!-- Скрытое поле: сюда мы положим ID выбранного человека.
+     Оно отправится на сервер при submit формы -->
+    <input type="hidden" name="relative_id" id="relative_id">
+
+    <!-- Контейнер, где будут показываться варианты из поиска.
+     Сначала скрыт (display:none) -->
+    <div id="search_results" style="border:1px solid #ddd; margin-top:6px; display:none;"></div>
+    <!-- Текст “Selected: ...” для пользователя -->
+    <p id="selected_person" class="muted"></p>
+
+    <!-- Отправка формы (сохранить связь) -->
     <button type="submit">Save relation</button>
 </form>
 
 <p><a href="{{ url_for('person_detail', person_id=person['id']) }}">← Back to profile</a></p>
+
+<script>
+    (function () {
+
+    // Находим нужные элементы на странице
+    const form = document.querySelector("form"); // сама форма
+    const input = document.getElementById("relative_search"); // поле поиска
+    const resultsBox = document.getElementById("search_results"); // контейнер результатов
+    const hiddenId = document.getElementById("relative_id"); // скрытое поле ID
+    const selected = document.getElementById("selected_person"); // текст "Selected: ..."
+
+    // AbortController нужен, чтобы отменять предыдущий запрос поиска,
+    // если пользователь быстро печатает и мы запускаем новый запрос.
+    let lastController = null;
+
+    // Очистить список результатов и скрыть его
+    function clearResults() {
+        resultsBox.innerHTML = "";
+        resultsBox.style.display = "none";
+    }
+
+
+    // Когда человек выбран из результатов:
+    // 1) записываем его id в hidden поле (важно для submit формы)
+    // 2) показываем пользователю, кого выбрали
+    // 3) вставляем имя в input
+    // 4) очищаем результаты
+    function setSelected(p) {
+        hiddenId.value = p.id;
+        selected.textContent = `Selected: ${p.first_name} ${p.last_name || ""}`.trim();
+        input.value = `${p.first_name} ${p.last_name || ""}`.trim();
+        clearResults();
+    }
+
+    // Функция поиска: делает запрос к Flask API и возвращает массив persons
+    async function search(q) {
+        // если уже был запрос — отменяем его
+        if (lastController) lastController.abort();
+        lastController = new AbortController();
+
+        // GET /api/persons/search?q=
+        const res = await fetch(`/api/persons/search?q=${encodeURIComponent(q)}`, {
+        signal: lastController.signal
+        });
+
+        // если сервер вернул ошибку — считаем что результатов нет
+        if (!res.ok) return [];
+
+        // ожидаем JSON 
+        return await res.json();
+    }
+
+    // Событие: пользователь что-то печатает в input
+    input.addEventListener("input", async () => {
+        const q = input.value.trim();
+
+        hiddenId.value = "";
+        selected.textContent = "";
+
+        if (q.length < 2) {
+        clearResults();
+        return;
+        }
+
+        const persons = await search(q);
+
+        resultsBox.innerHTML = "";
+        resultsBox.style.display = persons.length ? "block" : "none";
+
+        persons.forEach(p => {
+        const item = document.createElement("div");
+        item.style.padding = "8px";
+        item.style.cursor = "pointer";
+        item.textContent = `${p.first_name} ${p.last_name || ""}`.trim();
+        item.addEventListener("click", () => setSelected(p));
+        resultsBox.appendChild(item);
+        });
+    });
+
+    document.addEventListener("click", (e) => {
+        if (!resultsBox.contains(e.target) && e.target !== input) {
+        clearResults();
+        }
+    });
+
+    form.addEventListener("submit", (e) => {
+        if (!hiddenId.value) {
+        e.preventDefault();
+        alert("Please select a person from search results.");
+        }
+    });
+    })();
+</script>
 {% endblock %}
