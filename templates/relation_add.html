@@ -97,19 +97,24 @@
     input.addEventListener("input", async () => {
         const q = input.value.trim();
 
+        // Каждый раз при наборе сбрасываем выбранного человека, потому что пользователь меняет запрос
         hiddenId.value = "";
         selected.textContent = "";
 
+        // Если слишком коротко (меньше 2 символов) — не ищем
         if (q.length < 2) {
         clearResults();
         return;
         }
 
+        // Получаем список подходящих людей с сервера
         const persons = await search(q);
 
+        // Готовим resultsBox под новый список
         resultsBox.innerHTML = "";
         resultsBox.style.display = persons.length ? "block" : "none";
 
+        // Для каждого найденного человека создаём кликабельный div
         persons.forEach(p => {
         const item = document.createElement("div");
         item.style.padding = "8px";
@@ -120,15 +125,17 @@
         });
     });
 
+    // Закрыть список результатов, если кликнули вне него и не на input
     document.addEventListener("click", (e) => {
         if (!resultsBox.contains(e.target) && e.target !== input) {
         clearResults();
         }
     });
 
+    // Перед отправкой формы проверяем: если hiddenId пустой — значит пользователь НЕ выбрал человека из списка
     form.addEventListener("submit", (e) => {
         if (!hiddenId.value) {
-        e.preventDefault();
+        e.preventDefault(); // отменяем отправку формы
         alert("Please select a person from search results.");
         }
     });

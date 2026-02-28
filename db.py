@@ -17,7 +17,7 @@ def init_db():
     conn.commit()
     conn.close()
 
-# Возвращает список всех людей из таблицы persons
+# ========= Возвращает список всех людей из таблицы persons ==========
 def get_all_persons():
     conn = get_db()
     cur = conn.cursor()
@@ -25,8 +25,9 @@ def get_all_persons():
     rows = cur.fetchall()
     conn.close()
     return rows
+# ==============================
 
-# Возвращает ОДНУ запись о человеке по его id
+# ====Возвращает ОДНУ запись о человеке по его id ===========
 def get_person(person_id: int):
     conn = get_db()
     cur = conn.cursor()
@@ -34,8 +35,9 @@ def get_person(person_id: int):
     row = cur.fetchone()
     conn.close()
     return row
+# ==============================
 
-# Добавляет нового человека
+# ======= Добавляет нового человека ===============
 def add_person(first_name, last_name=None, birth_date=None, death_date=None, gender=None, notes=None):
     conn = get_db()
     cur = conn.cursor()
@@ -48,8 +50,9 @@ def add_person(first_name, last_name=None, birth_date=None, death_date=None, gen
     )
     conn.commit()
     conn.close()
+# ==============================
 
-# Обновляет данные о человеке с указанным id
+# ======= Обновляет данные о человеке с указанным id ==============
 def update_person(person_id, first_name, last_name=None, birth_date=None, death_date=None, gender=None, notes=None):
     conn = get_db()
     cur = conn.cursor()
@@ -63,8 +66,9 @@ def update_person(person_id, first_name, last_name=None, birth_date=None, death_
     )
     conn.commit()
     conn.close()
+# ==============================
 
-# Удаляет человека по id из таблицы persons
+# ==========Удаляет человека по id из таблицы persons =================
 def delete_person(person_id):
     conn = get_db()
     cur = conn.cursor()
@@ -77,18 +81,26 @@ def delete_person(person_id):
     cur.execute("DELETE FROM persons WHERE id = ?", (person_id,))
     conn.commit()
     conn.close()
+# ==============================
 
-# Поиск
+# ========= Поиск ===============
 def search_persons(query, limit=10):
     conn = get_db()
     cur = conn.cursor()
 
+    # страховка: если вдруг query пустой
     q = (query or "").strip()
     if not q:
         conn.close()
         return []
 
+    # %q% — значит "содержит q где угодно"
     like = f"%{q}%"
+
+    # Ищем по:
+    # 1) first_name LIKE
+    # 2) last_name LIKE
+    # 3) "first_name + пробел + last_name" LIKE (например "John Smith")
     cur.execute("""
         SELECT id, first_name, last_name, gender
         FROM persons
@@ -102,7 +114,10 @@ def search_persons(query, limit=10):
     rows = cur.fetchall()
     conn.close()
     return rows
+# ==============================
 
+
+# =============== добавить связь ================
 def add_relationship(person_id, relative_id, relation_type):
     """Добавляет связь между двумя людьми
         person_id   - основной человек в связи
@@ -119,7 +134,8 @@ def add_relationship(person_id, relative_id, relation_type):
     )
     conn.commit()
     conn.close()
-    
+# ==============================    
+
 def get_parents(person_id):
     """Возвращает список родителей для данного человека
     
