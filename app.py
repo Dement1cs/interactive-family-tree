@@ -1,3 +1,4 @@
+import os
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 from db import(
     get_db,
@@ -15,28 +16,112 @@ from db import(
     get_grandparents,
     search_persons
     )
+from extensions import db, migrate, login_manager, csrf
+
+from models import User
+from flask_login import login_user, logout_user, login_required, current_user
+from forms import RegisterForm, LoginForm
+
 
 # Основное приложение Flask
 app = Flask(__name__)
 
-# ====== Главная страница ======
+#======== РЕГЕСТРАЦИЯ =============================
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-change-me")
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///app.db"
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+db.init_app(app)
+migrate.init_app(app, db)
+login_manager.init_app(app)
+csrf.init_app(app)
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+#======== register роут =============================
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for("index"))
+
+    form = RegisterForm()
+    if form.validate_on_submit():
+        email = form.email.data.lower().strip()
+
+        # проверка что email не занят
+        existing = User.query.filter_by(email=email).first()
+        if existing:
+            form.email.errors.append("This email is already registered.")
+            return render_template("register.html", form=form)
+
+        user = User(email=email)
+        user.set_password(form.password.data)
+
+        db.session.add(user)
+        db.session.commit()
+
+        login_user(user)
+        return redirect(url_for("index"))
+
+    return render_template("register.html", form=form)
+#========================================================
+
+#======== login роут =============================
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for("index"))
+
+    form = LoginForm()
+    if form.validate_on_submit():
+        email = form.email.data.lower().strip()
+        user = User.query.filter_by(email=email).first()
+
+        if user is None or not user.check_password(form.password.data):
+            form.password.errors.append("Invalid email or password.")
+            return render_template("login.html", form=form)
+
+        login_user(user, remember=form.remember.data)
+        next_url = request.args.get("next") # вернуть от куда пришел
+        return redirect(next_url or url_for("index"))
+
+    return render_template("login.html", form=form)
+#========================================================
+
+#======== logout роут =============================
+@app.route("/logout", methods=["POST"])
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for("login"))
+#========================================================
+
+# ====== Главная страница ================================
 @app.route("/")
 def index():
     return render_template("index.html")
+# ========================================================
 
-# ====== Тут удет дерево ======
+# ====== Тут удет дерево =================================
 @app.route("/tree")
+@login_required
 def tree():
     return render_template("tree.html")
+# =========================================================
 
-# ====== Список всех людей ======
+# ====== Список всех людей =================================
 @app.route("/persons")
+@login_required
 def persons():
     people = get_all_persons()
     return render_template("persons.html", people=people)
+# ==========================================================
 
-# ====== ДОБАВИТЬ ЧЕЛОВЕКА ======
+# ====== ДОБАВИТЬ ЧЕЛОВЕКА =================================
 @app.route('/persons/add', methods=["GET", "POST"])
+@login_required
 def add_person_route():
     if request.method == "POST":
         first_name = request.form.get("first_name")
@@ -54,9 +139,11 @@ def add_person_route():
         # После добавления перенаправляем на список всех людей
         return redirect(url_for("persons"))
     return render_template("person_add.html")
+# =========================================================
 
-# ====== ДЕТАЛИ ПРОФИЛЬ ЧЕЛОВЕКА ======
+# ====== ДЕТАЛИ ПРОФИЛЬ ЧЕЛОВЕКА ===========================
 @app.route("/persons/<int:person_id>")
+@login_required
 def person_detail(person_id):
     person = get_person(person_id)
     if person is None:
@@ -78,9 +165,11 @@ def person_detail(person_id):
         siblings=siblings,
         grandparents=grandparents,
     )
+# ==========================================================
 
-# ====== Редактирование данных человека ======
+# ====== Редактирование данных человека ===================
 @app.route("/persons/<int:person_id>/edit", methods=["GET", "POST"])
+@login_required
 def edit_person(person_id):
 
     #GET показать форму с уже заполненными данными
@@ -104,9 +193,11 @@ def edit_person(person_id):
         return redirect(url_for("person_detail", person_id=person_id))
     
     return render_template("person_edit.html", person=person)
+# ======================================================
 
-# ====== Добавление связи ======
+# ====== Добавление связи ========================
 @app.route("/persons/<int:person_id>/relations/add", methods=["GET", "POST"])
+@login_required
 def add_relation(person_id):
 
     #Parent выбранный человек будет родителем текущего
@@ -166,9 +257,13 @@ def add_relation(person_id):
         return redirect(url_for("person_detail", person_id=person_id))
 
     return render_template("relation_add.html", person=person, people=people)
+# ==================================================
+
+
 
 # ====== Удаление человека ======
 @app.route("/persons/<int:person_id>/delete", methods=["POST"])
+@login_required
 def delete_person_route(person_id):
     person = get_person(person_id)
     if person is None:
@@ -176,15 +271,22 @@ def delete_person_route(person_id):
     
     delete_person(person_id)
     return redirect(url_for("persons"))
+# =============================
 
+
+# ======API persons=====================================================
 @app.route("/api/persons")
+@login_required
 def api_persons():
-    db = get_db()
-    persons = db.execute("SELECT id, first_name, last_name, birth_date, death_date, notes FROM persons").fetchall()
+    conn = get_db()
+    persons = conn.execute("SELECT id, first_name, last_name, birth_date, death_date, notes FROM persons").fetchall()
     return jsonify([dict(p) for p in persons])
+# =======================================
 
-# ========== Поиск ============
+
+# ==========API Поиск ============
 @app.route("/api/persons/search")
+@login_required
 def api_person_search():
     # Берём параметр q из URL: /api/persons/search?q=...
     q = request.args.get("q", "").strip()
@@ -196,18 +298,23 @@ def api_person_search():
     # Ищем людей в базе (ограничиваем 10 результатами)
     results = search_persons(q, limit=20)
 
+    # rows могут быть sqlite.Row, поэтому превращаем каждую строку в dict
+    # и отдаём список словарей в JSON
     return jsonify([dict(r) for r in results])
+# ================================
 
+# ======API tree==========================================
 @app.route("/api/tree")
+@login_required
 def api_tree():
-    db = get_db()
+    conn = get_db()
 
-    persons = db.execute("""
+    persons = conn.execute("""
         SELECT id, first_name, last_name, birth_date, death_date, notes
         FROM persons
     """).fetchall()
 
-    relationships = db.execute("""
+    relationships = conn.execute("""
         SELECT person_id, relative_id, relation_type
         FROM relationships
     """).fetchall()
@@ -216,18 +323,25 @@ def api_tree():
         "persons": [dict(p) for p in persons],
         "relationships": [dict(r) for r in relationships]
     })
+# ==============================================================
 
+
+# ======API tables==========================================
 @app.route("/api/tables")
+@login_required
 def api_tables():
-    db = get_db()
-    rows = db.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+    conn = get_db()
+    rows = conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
     return jsonify([r["name"] if isinstance(r, dict) else r[0] for r in rows])
- 
-# ====== Инициализация базы данных ======
+# ==============================================================
+
+# ====== Инициализация базы данных ========
 @app.route("/init-db")
+@login_required
 def init_db_route():
     init_db()
     return "Database initialized."
+# =========================================
 
 # Точка входа
 if __name__ == "__main__":

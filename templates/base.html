@@ -14,12 +14,21 @@
                 <a href="{{ url_for('index') }}">Home</a>
                 <a href="{{ url_for('tree') }}">Family Tree</a>
                 <a href="{{ url_for('persons') }}">Persons</a>
+                {% if current_user.is_authenticated %}
+                <form action="{{ url_for('logout') }}" method="post" style="display:inline; margin-left:10px;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit">Logout</button>
+                </form>
+                {% else %}
+                <a href="{{ url_for('login') }}">Login</a>
+                <a href="{{ url_for('register') }}">Register</a>
+                {% endif %}
             </nav>
         </div>
     </header>
 
-    <main class = "main-content container">
-        <div class="conteiner">
+    <main class="main-content container">
+        <div class="container">
             {% block content %}{% endblock %}
         </div>
     </main>
