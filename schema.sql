@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS persons (
     death_date TEXT,
     gender TEXT,
     notes TEXT,
+    tree_id INTEGER,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 

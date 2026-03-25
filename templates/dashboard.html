@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard — Interactive Family Tree{% endblock %}
+
+{% block content %}
+<h2>Your account</h2>
+
+<h3>Your trees</h3>
+
+<form action="{{ url_for('create_tree') }}" method="post" style="margin-bottom: 16px;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="text" name="title" placeholder="Tree name (optional)" />
+    <button type="submit">Create tree</button>
+</form>
+
+{% if trees and trees|length > 0 %}
+    <ul>
+        {% for t in trees %}
+        <li>
+            <strong>{{ t.title }}</strong>
+            <span class="muted">(#{{ t.id }})</span>
+            <!-- позже заменим на ссылку на /tree/<id> -->
+            <a href="{{ url_for('tree') }}">Open</a>
+        </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p class="muted">You don't have any trees yet. Create one above.</p>
+{% endif %}
+
+{% endblock %}

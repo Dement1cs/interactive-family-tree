@@ -18,7 +18,7 @@ from db import(
     )
 from extensions import db, migrate, login_manager, csrf
 
-from models import User
+from models import User, Tree
 from flask_login import login_user, logout_user, login_required, current_user
 from forms import RegisterForm, LoginForm
 
@@ -259,8 +259,6 @@ def add_relation(person_id):
     return render_template("relation_add.html", person=person, people=people)
 # ==================================================
 
-
-
 # ====== Удаление человека ======
 @app.route("/persons/<int:person_id>/delete", methods=["POST"])
 @login_required
@@ -273,6 +271,40 @@ def delete_person_route(person_id):
     return redirect(url_for("persons"))
 # =============================
 
+# ====== DASHBOARD ==================================================
+# --------показывает список деревьев текущего пользователя-----------
+@app.route("/dashboard")
+@login_required
+def dashboard():
+    trees = Tree.query.filter_by(owner_user_id=current_user.id).order_by(Tree.created_at.desc()).all()
+    return render_template("dashboard.html", trees=trees)
+# -------------------------------------------------------------------
+
+# ----- создаёт новое дерево (POST) и возвращает на dashboard -------
+@app.route("/trees/create", methods=["POST"])
+@login_required
+def create_tree():
+    title = request.form.get("title", "").strip() or "My Family Tree"
+    t = Tree(title=title, owner_user_id=current_user.id)
+    db.session.add(t)
+    db.session.commit()
+    return redirect(url_for("dashboard"))
+# -------------------------------------------------------------------
+# ===================================================================
+
+
+
+
+
+
+
+
+
+
+
+
+# ======API==========================================================
+# ===================================================================
 
 # ======API persons=====================================================
 @app.route("/api/persons")

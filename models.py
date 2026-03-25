@@ -16,3 +16,13 @@ class User(db.Model, UserMixin):
 
     def check_password(self, password: str) -> bool:
         return check_password_hash(self.password_hash, password)
+
+class Tree(db.Model):
+    __tablename__ = "trees"
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(120), nullable=False, default="My Family Tree")
+    owner_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    owner = db.relationship("User", backref="trees")
