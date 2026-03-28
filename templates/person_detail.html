@@ -35,12 +35,13 @@
 
 {% block content %}
 <div class="person-actions" style="margin-bottom: 10px;">
-    <a href="{{ url_for('edit_person', person_id=person['id']) }}">Edit</a>
+    <a href="{{ url_for('edit_person', person_id=person['id'], tree_id=tree_id) }}">Edit</a>
 
-    <form action="{{ url_for('delete_person_route', person_id=person['id']) }}"
+    <form action="{{ url_for('delete_person_route', person_id=person['id'], tree_id=tree_id) }}"
           method="post"
           style="display:inline;"
           onsubmit="return confirm('Delete this person?');">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="submit">Delete</button>
     </form>
 </div>
@@ -77,14 +78,14 @@
         <section class="person-section">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <h3>Relations</h3>
-                <a href="{{ url_for('add_relation', person_id=person['id']) }}">Add relation</a>
+                <a href="{{ url_for('add_relation', person_id=person['id'], tree_id=tree_id) }}">Add relation</a>
             </div>
 
             {% if parents and parents|length > 0 %}
                 <h4>Parents</h4>
                 <ul>
                     {% for p in parents %}
-                        <li>{{ role_label('parent', p['gender']) }}: <a href="{{ url_for('person_detail', person_id=p['id']) }}">{{ p['first_name'] }} {{ p['last_name'] }}</a></li>
+                        <li>{{ role_label('parent', p['gender']) }}: <a href="{{ url_for('person_detail', person_id=p['id'], tree_id=tree_id) }}">{{ p['first_name'] }} {{ p['last_name'] }}</a></li>
                     {% endfor %}
                 </ul>
             {% endif %}
@@ -93,7 +94,7 @@
                 <h4>Siblings</h4>
                 <ul>
                     {% for s in siblings %}
-                        <li>{{ role_label('sibling', s['gender']) }}: <a href="{{ url_for('person_detail', person_id=s['id']) }}">{{ s['first_name'] }} {{ s['last_name'] }}</a></li>
+                        <li>{{ role_label('sibling', s['gender']) }}: <a href="{{ url_for('person_detail', person_id=s['id'], tree_id=tree_id) }}">{{ s['first_name'] }} {{ s['last_name'] }}</a></li>
                     {% endfor %}
                 </ul>
             {% else %}
@@ -104,7 +105,7 @@
                 <h4>Children</h4>
                 <ul>
                     {% for c in children %}
-                        <li>{{ role_label('child', c['gender']) }}: <a href="{{ url_for('person_detail', person_id=c['id']) }}">{{ c['first_name'] }} {{ c['last_name'] }}</a></li>
+                        <li>{{ role_label('child', c['gender']) }}: <a href="{{ url_for('person_detail', person_id=c['id'], tree_id=tree_id) }}">{{ c['first_name'] }} {{ c['last_name'] }}</a></li>
                     {% endfor %}
                 </ul>
             {% else %}
@@ -116,7 +117,7 @@
                 <ul>
                 {% for s in spouses %}
                     <li>
-                        <a href="{{ url_for('person_detail', person_id=s['id']) }}">
+                        <a href="{{ url_for('person_detail', person_id=s['id'], tree_id=tree_id) }}">
                             {{ s["first_name"] }} {{ s["last_name"] or "" }}
                         </a>
                     </li>
@@ -130,11 +131,11 @@
             <h4>Grandparents</h4>
                 <ul>
                     {% for g in grandparents %}
-                        <li>{{ role_label('grandparent', g['gender']) }}: <a href="{{ url_for('person_detail', person_id=g['id']) }}">{{ g['first_name'] }} {{ g['last_name'] }}</a></li>
+                        <li>{{ role_label('grandparent', g['gender']) }}: <a href="{{ url_for('person_detail', person_id=g['id'], tree_id=tree_id) }}">{{ g['first_name'] }} {{ g['last_name'] }}</a></li>
                     {% endfor %}
                 </ul>
             {% else %}
-                <!--<p class="muted">No grandparents detected.</p>
+                <p class="muted">No grandparents detected.</p>
             {% endif %}
         </section>
 
@@ -160,7 +161,7 @@
     </div>
 
     <p>
-        <a href="{{ url_for('persons') }}">← Back to list</a>
+        <a href="{{ url_for('persons', tree_id=tree_id) }}">Back to list</a>
     </p>
 </div>
 {% endblock %}

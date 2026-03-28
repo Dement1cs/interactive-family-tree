@@ -18,10 +18,18 @@ def init_db():
     conn.close()
 
 # ========= Возвращает список всех людей из таблицы persons ==========
-def get_all_persons():
+def get_all_persons(tree_id=None):
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("SELECT * FROM persons ORDER BY id")
+
+    if tree_id:
+        cur.execute(
+            "SELECT * FROM persons WHERE tree_id = ? ORDER BY id",
+            (tree_id,)
+        )
+    else:
+        cur.execute("SELECT * FROM persons ORDER BY id")
+
     rows = cur.fetchall()
     conn.close()
     return rows
@@ -38,15 +46,15 @@ def get_person(person_id: int):
 # ==============================
 
 # ======= Добавляет нового человека ===============
-def add_person(first_name, last_name=None, birth_date=None, death_date=None, gender=None, notes=None):
+def add_person(first_name, last_name=None, birth_date=None, death_date=None, gender=None, notes=None, tree_id=None):
     conn = get_db()
     cur = conn.cursor()
     cur.execute(
         """
-        INSERT INTO persons (first_name, last_name, birth_date, death_date, gender, notes)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO persons (first_name, last_name, birth_date, death_date, gender, notes, tree_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
-        (first_name, last_name, birth_date, death_date, gender, notes)
+        (first_name, last_name, birth_date, death_date, gender, notes, tree_id)
     )
     conn.commit()
     conn.close()

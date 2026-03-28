@@ -38,7 +38,7 @@ csrf.init_app(app)
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    return db.session.get(User, int(user_id))
 
 #======== register роут =============================
 @app.route("/register", methods=["GET", "POST"])
@@ -108,21 +108,25 @@ def index():
 @app.route("/tree")
 @login_required
 def tree():
-    return render_template("tree.html")
+    tree_id = request.args.get("tree_id")
+    return render_template("tree.html", tree_id=tree_id)
 # =========================================================
 
 # ====== Список всех людей =================================
 @app.route("/persons")
 @login_required
 def persons():
-    people = get_all_persons()
-    return render_template("persons.html", people=people)
+    tree_id = request.args.get("tree_id")
+    people = get_all_persons(tree_id)
+    return render_template("persons.html", people=people, tree_id=tree_id)
 # ==========================================================
 
 # ====== ДОБАВИТЬ ЧЕЛОВЕКА =================================
 @app.route('/persons/add', methods=["GET", "POST"])
 @login_required
 def add_person_route():
+    tree_id = request.args.get("tree_id")
+
     if request.method == "POST":
         first_name = request.form.get("first_name")
         last_name = request.form.get("last_name") or None
@@ -131,25 +135,24 @@ def add_person_route():
         gender = request.form.get("gender") or None
         notes = request.form.get("notes") or None
 
-        #нет имени, нет человека
         if not first_name:
-            return "First nemae is required", 400
+            return "First name is required", 400
         
-        add_person(first_name, last_name, birth_date, death_date, gender, notes)
-        # После добавления перенаправляем на список всех людей
-        return redirect(url_for("persons"))
-    return render_template("person_add.html")
+        add_person(first_name, last_name, birth_date, death_date, gender, notes, tree_id)
+        return redirect(url_for("persons", tree_id=tree_id))
+
+    return render_template("person_add.html", tree_id=tree_id)
 # =========================================================
 
 # ====== ДЕТАЛИ ПРОФИЛЬ ЧЕЛОВЕКА ===========================
 @app.route("/persons/<int:person_id>")
 @login_required
 def person_detail(person_id):
+    tree_id = request.args.get("tree_id")
+
     person = get_person(person_id)
     if person is None:
         return "Person not found", 404
-    
-    # Получаем все необходимые связи из db
     parents = get_parents(person_id)
     children = get_children(person_id)
     spouses = get_spouses(person_id)
@@ -164,6 +167,7 @@ def person_detail(person_id):
         spouses=spouses,
         siblings=siblings,
         grandparents=grandparents,
+        tree_id=tree_id
     )
 # ==========================================================
 
@@ -171,9 +175,8 @@ def person_detail(person_id):
 @app.route("/persons/<int:person_id>/edit", methods=["GET", "POST"])
 @login_required
 def edit_person(person_id):
+    tree_id = request.args.get("tree_id")
 
-    #GET показать форму с уже заполненными данными
-    #POST сохранить изменения в базе
     person = get_person(person_id)
     if person is None:
         return "Person is not found", 404
@@ -190,24 +193,22 @@ def edit_person(person_id):
             return "First name is required", 400
         
         update_person(person_id, first_name, last_name, birth_date, death_date, gender, notes)
-        return redirect(url_for("person_detail", person_id=person_id))
+        return redirect(url_for("person_detail", person_id=person_id, tree_id=tree_id))
     
-    return render_template("person_edit.html", person=person)
+    return render_template("person_edit.html", person=person, tree_id=tree_id)
 # ======================================================
 
 # ====== Добавление связи ========================
 @app.route("/persons/<int:person_id>/relations/add", methods=["GET", "POST"])
 @login_required
 def add_relation(person_id):
-
-    #Parent выбранный человек будет родителем текущего
-    #Spouse в обе стороны
+    tree_id = request.args.get("tree_id")
 
     person = get_person(person_id)
     if person is None:
         return "Person not found", 404
 
-    people = get_all_persons()
+    people = get_all_persons(tree_id)
 
     if request.method == "POST":
         relation_type = request.form.get("relation_type")
@@ -220,27 +221,23 @@ def add_relation(person_id):
             relative_id = int(relative_id)
         except ValueError:
             return "Invalid relative id", 400
-
-        # защита от самосвязи
+        
         if relative_id == person_id:
             return "Cannot create relation with self", 400
 
         if relation_type == "parent":
-            # relative = родитель current
             add_relationship(
                 person_id=relative_id,
                 relative_id=person_id,
                 relation_type="parent"
             )
         elif relation_type == "child":
-            # relative = ребёнок current
             add_relationship(
                 person_id=person_id,
                 relative_id=relative_id,
                 relation_type="parent"
             )
         elif relation_type == "spouse":
-            # супруги — симметрично
             add_relationship(
                 person_id=person_id,
                 relative_id=relative_id,
@@ -254,21 +251,23 @@ def add_relation(person_id):
         else:
             return "Unknown relation type", 400
 
-        return redirect(url_for("person_detail", person_id=person_id))
+        return redirect(url_for("person_detail", person_id=person_id, tree_id=tree_id))
 
-    return render_template("relation_add.html", person=person, people=people)
+    return render_template("relation_add.html", person=person, people=people, tree_id=tree_id)
 # ==================================================
 
 # ====== Удаление человека ======
 @app.route("/persons/<int:person_id>/delete", methods=["POST"])
 @login_required
 def delete_person_route(person_id):
+    tree_id = request.args.get("tree_id")
+
     person = get_person(person_id)
     if person is None:
         return "Person not found", 404
     
     delete_person(person_id)
-    return redirect(url_for("persons"))
+    return redirect(url_for("persons", tree_id=tree_id))
 # =============================
 
 # ====== DASHBOARD ==================================================
@@ -340,16 +339,34 @@ def api_person_search():
 @login_required
 def api_tree():
     conn = get_db()
+    tree_id = request.args.get("tree_id")
 
-    persons = conn.execute("""
-        SELECT id, first_name, last_name, birth_date, death_date, notes
-        FROM persons
-    """).fetchall()
+    if tree_id:
+        persons = conn.execute("""
+            SELECT id, first_name, last_name, birth_date, death_date, notes, tree_id
+            FROM persons
+            WHERE tree_id = ?
+        """, (tree_id,)).fetchall()
 
-    relationships = conn.execute("""
-        SELECT person_id, relative_id, relation_type
-        FROM relationships
-    """).fetchall()
+        relationships = conn.execute("""
+            SELECT r.person_id, r.relative_id, r.relation_type
+            FROM relationships r
+            JOIN persons p1 ON r.person_id = p1.id
+            JOIN persons p2 ON r.relative_id = p2.id
+            WHERE p1.tree_id = ? AND p2.tree_id = ?
+        """, (tree_id, tree_id)).fetchall()
+    else:
+        persons = conn.execute("""
+            SELECT id, first_name, last_name, birth_date, death_date, notes, tree_id
+            FROM persons
+        """).fetchall()
+
+        relationships = conn.execute("""
+            SELECT person_id, relative_id, relation_type
+            FROM relationships
+        """).fetchall()
+
+    conn.close()
 
     return jsonify({
         "persons": [dict(p) for p in persons],

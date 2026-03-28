@@ -19,8 +19,8 @@
         <li>
             <strong>{{ t.title }}</strong>
             <span class="muted">(#{{ t.id }})</span>
-            <!-- позже заменим на ссылку на /tree/<id> -->
-            <a href="{{ url_for('tree') }}">Open</a>
+            <a href="{{ url_for('tree', tree_id=t.id) }}">Open</a>
+            <a href="{{ url_for('persons', tree_id=t.id) }}">People</a>
         </li>
         {% endfor %}
     </ul>

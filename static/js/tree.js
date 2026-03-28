@@ -116,10 +116,18 @@
 
   try {
     // Берём данные дерева с сервера
-    const res = await fetch("/api/tree");
+    const params = new URLSearchParams(window.location.search);
+    const treeId = params.get("tree_id");
+
+    let apiUrl = "/api/tree";
+    if (treeId) {
+      apiUrl += `?tree_id=${treeId}`;
+    }
+
+    const res = await fetch(apiUrl);
     if (!res.ok) {
       const text = await res.text();
-      console.error("GET /api/tree failed:", res.status, text);
+      console.error("GET " + apiUrl + " failed:", res.status, text);
       return;
     }
 
