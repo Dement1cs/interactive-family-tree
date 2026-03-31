@@ -4,10 +4,12 @@ from db import(
     get_db,
     init_db, 
     get_all_persons, 
+    count_persons_in_tree,
     add_person, 
     get_person,
     update_person,
     delete_person,
+    delete_tree_data,
     add_relationship,
     get_parents,
     get_children,
@@ -119,6 +121,9 @@ def index():
 @login_required
 def tree():
     tree_id = request.args.get("tree_id")
+    if not tree_id:
+        return redirect(url_for("dashboard"))
+
     current_tree = get_current_user_tree_or_404(tree_id)
 
     return render_template("tree.html", tree_id=tree_id, current_tree=current_tree)
@@ -129,9 +134,12 @@ def tree():
 @login_required
 def persons():
     tree_id = request.args.get("tree_id")
-    current_tree = get_current_user_tree_or_404(tree_id)
+    if not tree_id:
+        return redirect(url_for("dashboard"))
 
+    current_tree = get_current_user_tree_or_404(tree_id)
     people = get_all_persons(tree_id)
+
     return render_template("persons.html", people=people, tree_id=tree_id, current_tree=current_tree)
 # ==========================================================
 
@@ -295,7 +303,16 @@ def delete_person_route(person_id):
 @login_required
 def dashboard():
     trees = Tree.query.filter_by(owner_user_id=current_user.id).order_by(Tree.created_at.desc()).all()
-    return render_template("dashboard.html", trees=trees)
+
+    tree_cards = []
+    for t in trees:
+        tree_cards.append({
+            "id": t.id,
+            "title": t.title,
+            "person_count": count_persons_in_tree(t.id)
+        })
+
+    return render_template("dashboard.html", trees=tree_cards)
 # -------------------------------------------------------------------
 
 # ----- создаёт новое дерево (POST) и возвращает на dashboard -------
@@ -306,6 +323,46 @@ def create_tree():
     t = Tree(title=title, owner_user_id=current_user.id)
     db.session.add(t)
     db.session.commit()
+    return redirect(url_for("dashboard"))
+# -------------------------------------------------------------------
+
+# -------- Rename -----------------------------------------------
+@app.route("/trees/<int:tree_id>/edit", methods=["GET", "POST"])
+@login_required
+def edit_tree(tree_id):
+    tree = Tree.query.filter_by(id=tree_id, owner_user_id=current_user.id).first()
+    if tree is None:
+        return "Tree not found", 404
+
+    if request.method == "POST":
+        title = request.form.get("title", "").strip()
+
+        if not title:
+            return "Tree title is required", 400
+
+        tree.title = title
+        db.session.commit()
+
+        return redirect(url_for("dashboard"))
+
+    return render_template("tree_edit.html", tree=tree)
+# -------------------------------------------------------------------
+
+# ----------- Удалить дерево ----------------------------------------
+@app.route("/trees/<int:tree_id>/delete", methods=["POST"])
+@login_required
+def delete_tree_route(tree_id):
+    tree = Tree.query.filter_by(id=tree_id, owner_user_id=current_user.id).first()
+    if tree is None:
+        return "Tree not found", 404
+
+    # удалить людей и связи этого дерева из database.db
+    delete_tree_data(tree_id)
+
+    # удалить само дерево из app.db
+    db.session.delete(tree)
+    db.session.commit()
+
     return redirect(url_for("dashboard"))
 # -------------------------------------------------------------------
 # ===================================================================
@@ -359,6 +416,10 @@ def api_person_search():
 def api_tree():
     conn = get_db()
     tree_id = request.args.get("tree_id")
+    if not tree_id:
+        conn.close()
+        return jsonify({"persons": [], "relationships": []})
+
     current_tree = get_current_user_tree_or_404(tree_id)
 
     if tree_id:

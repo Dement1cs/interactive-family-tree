@@ -33,6 +33,22 @@ def get_all_persons(tree_id=None):
     rows = cur.fetchall()
     conn.close()
     return rows
+# =======================================
+
+# ======= посчитать людей ===============
+def count_persons_in_tree(tree_id):
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute(
+        "SELECT COUNT(*) AS total FROM persons WHERE tree_id = ?",
+        (tree_id,)
+    )
+
+    row = cur.fetchone()
+    conn.close()
+
+    return row["total"] if row else 0
 # ==============================
 
 # ====Возвращает ОДНУ запись о человеке по его id ===========
@@ -87,6 +103,25 @@ def delete_person(person_id):
     )
     #удалить самого человека
     cur.execute("DELETE FROM persons WHERE id = ?", (person_id,))
+    conn.commit()
+    conn.close()
+# ==============================
+
+# ========= Удалить дерево =====================
+def delete_tree_data(tree_id):
+    conn = get_db()
+    cur = conn.cursor()
+
+    # Сначала удалить связи всех людей этого дерева
+    cur.execute("""
+        DELETE FROM relationships
+        WHERE person_id IN (SELECT id FROM persons WHERE tree_id = ?)
+           OR relative_id IN (SELECT id FROM persons WHERE tree_id = ?)
+    """, (tree_id, tree_id))
+
+    # Потом удалить самих людей
+    cur.execute("DELETE FROM persons WHERE tree_id = ?", (tree_id,))
+
     conn.commit()
     conn.close()
 # ==============================

@@ -16,12 +16,25 @@
 {% if trees and trees|length > 0 %}
     <ul>
         {% for t in trees %}
-        <li>
-            <strong>{{ t.title }}</strong>
-            <span class="muted">(#{{ t.id }})</span>
-            <a href="{{ url_for('tree', tree_id=t.id) }}">Open</a>
-            <a href="{{ url_for('persons', tree_id=t.id) }}">People</a>
-        </li>
+            <li>
+                <strong>{{ t.title }}</strong>
+                <span class="muted">(#{{ t.id }})</span>
+                <span class="muted">
+                    — {{ t.person_count }} {{ "person" if t.person_count == 1 else "people" }}
+                </span>
+
+                <a href="{{ url_for('tree', tree_id=t.id) }}">Open</a>
+                <a href="{{ url_for('persons', tree_id=t.id) }}">People</a>
+                <a href="{{ url_for('edit_tree', tree_id=t.id) }}">Rename</a>
+
+                <form action="{{ url_for('delete_tree_route', tree_id=t.id) }}"
+                    method="post"
+                    style="display:inline;"
+                    onsubmit="return confirm('Delete this tree and all people inside it?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit">Delete</button>
+                </form>
+            </li>
         {% endfor %}
     </ul>
 {% else %}

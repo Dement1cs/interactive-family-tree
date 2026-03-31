@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Rename Tree — Interactive Family Tree{% endblock %}
+
+{% block content %}
+<h2>Rename Tree</h2>
+
+<form action="{{ url_for('edit_tree', tree_id=tree.id) }}" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div>
+        <label for="title">Tree title</label><br>
+        <input type="text" id="title" name="title" value="{{ tree.title }}" required>
+    </div>
+
+    <p style="margin-top: 12px;">
+        <button type="submit">Save</button>
+    </p>
+</form>
+
+<p>
+    <a href="{{ url_for('dashboard') }}">← Back to dashboard</a>
+</p>
+{% endblock %}
