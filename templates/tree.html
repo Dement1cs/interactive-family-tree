@@ -1,7 +1,17 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2>Your Family Tree</h2>
+<h2>
+    Family Tree
+    {% if current_tree %}
+        — {{ current_tree.title }}
+    {% endif %}
+</h2>
+<p>
+    {% if tree_id %}
+        <a href="{{ url_for('persons', tree_id=tree_id) }}">Manage people</a>
+    {% endif %}
+</p>
 
 <script src="https://unpkg.com/gojs/release/go.js"></script>
 

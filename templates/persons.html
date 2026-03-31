@@ -3,8 +3,17 @@
 {% block title %}Persons — Interactive Family Tree{% endblock %}
 
 {% block content %}
-<h2>Persons</h2>
-
+<h2>
+    Persons
+    {% if current_tree %}
+        — {{ current_tree.title }}
+    {% endif %}
+</h2>
+<p>
+    {% if tree_id %}
+        <a href="{{ url_for('tree', tree_id=tree_id) }}">View tree</a>
+    {% endif %}
+</p>
 <p>
     <a href="{{ url_for('add_person_route', tree_id=tree_id) }}">Add new person</a>
 </p>

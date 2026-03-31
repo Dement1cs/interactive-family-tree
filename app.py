@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask import Flask, render_template, request, redirect, url_for, jsonify, abort
 from db import(
     get_db,
     init_db, 
@@ -39,6 +39,16 @@ csrf.init_app(app)
 @login_manager.user_loader
 def load_user(user_id):
     return db.session.get(User, int(user_id))
+
+def get_current_user_tree_or_404(tree_id):
+    if not tree_id:
+        return None
+
+    tree = Tree.query.filter_by(id=tree_id, owner_user_id=current_user.id).first()
+    if tree is None:
+        abort(404)
+
+    return tree
 
 #======== register роут =============================
 @app.route("/register", methods=["GET", "POST"])
@@ -104,12 +114,14 @@ def index():
     return render_template("index.html")
 # ========================================================
 
-# ====== Тут удет дерево =================================
+# ====== Тут дерево =================================
 @app.route("/tree")
 @login_required
 def tree():
     tree_id = request.args.get("tree_id")
-    return render_template("tree.html", tree_id=tree_id)
+    current_tree = get_current_user_tree_or_404(tree_id)
+
+    return render_template("tree.html", tree_id=tree_id, current_tree=current_tree)
 # =========================================================
 
 # ====== Список всех людей =================================
@@ -117,8 +129,10 @@ def tree():
 @login_required
 def persons():
     tree_id = request.args.get("tree_id")
+    current_tree = get_current_user_tree_or_404(tree_id)
+
     people = get_all_persons(tree_id)
-    return render_template("persons.html", people=people, tree_id=tree_id)
+    return render_template("persons.html", people=people, tree_id=tree_id, current_tree=current_tree)
 # ==========================================================
 
 # ====== ДОБАВИТЬ ЧЕЛОВЕКА =================================
@@ -126,6 +140,7 @@ def persons():
 @login_required
 def add_person_route():
     tree_id = request.args.get("tree_id")
+    current_tree = get_current_user_tree_or_404(tree_id)
 
     if request.method == "POST":
         first_name = request.form.get("first_name")
@@ -149,6 +164,7 @@ def add_person_route():
 @login_required
 def person_detail(person_id):
     tree_id = request.args.get("tree_id")
+    current_tree = get_current_user_tree_or_404(tree_id)
 
     person = get_person(person_id)
     if person is None:
@@ -176,6 +192,7 @@ def person_detail(person_id):
 @login_required
 def edit_person(person_id):
     tree_id = request.args.get("tree_id")
+    current_tree = get_current_user_tree_or_404(tree_id)
 
     person = get_person(person_id)
     if person is None:
@@ -203,6 +220,7 @@ def edit_person(person_id):
 @login_required
 def add_relation(person_id):
     tree_id = request.args.get("tree_id")
+    current_tree = get_current_user_tree_or_404(tree_id)
 
     person = get_person(person_id)
     if person is None:
@@ -261,6 +279,7 @@ def add_relation(person_id):
 @login_required
 def delete_person_route(person_id):
     tree_id = request.args.get("tree_id")
+    current_tree = get_current_user_tree_or_404(tree_id)
 
     person = get_person(person_id)
     if person is None:
@@ -340,6 +359,7 @@ def api_person_search():
 def api_tree():
     conn = get_db()
     tree_id = request.args.get("tree_id")
+    current_tree = get_current_user_tree_or_404(tree_id)
 
     if tree_id:
         persons = conn.execute("""
