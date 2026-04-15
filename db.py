@@ -62,31 +62,62 @@ def get_person(person_id: int):
 # ==============================
 
 # ======= Добавляет нового человека ===============
-def add_person(first_name, last_name=None, birth_date=None, death_date=None, gender=None, notes=None, tree_id=None):
+def add_person(first_name, last_name=None,
+               birth_date=None, death_date=None,
+               birth_year=None, birth_month=None, birth_day=None,
+               death_year=None, death_month=None, death_day=None,
+               gender=None, notes=None, tree_id=None):
+    
     conn = get_db()
     cur = conn.cursor()
     cur.execute(
         """
-        INSERT INTO persons (first_name, last_name, birth_date, death_date, gender, notes, tree_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO persons (
+            first_name, last_name,
+            birth_date, death_date,
+            birth_year, birth_month, birth_day,
+            death_year, death_month, death_day,
+            gender, notes, tree_id
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        (first_name, last_name, birth_date, death_date, gender, notes, tree_id)
+        (
+            first_name, last_name,
+            birth_date, death_date,
+            birth_year, birth_month, birth_day,
+            death_year, death_month, death_day,
+            gender, notes, tree_id
+        )
     )
     conn.commit()
     conn.close()
 # ==============================
 
 # ======= Обновляет данные о человеке с указанным id ==============
-def update_person(person_id, first_name, last_name=None, birth_date=None, death_date=None, gender=None, notes=None):
+def update_person(person_id, first_name, last_name=None,
+                  birth_date=None, death_date=None,
+                  birth_year=None, birth_month=None, birth_day=None,
+                  death_year=None, death_month=None, death_day=None,
+                  gender=None, notes=None):
     conn = get_db()
     cur = conn.cursor()
     cur.execute(
         """
         UPDATE persons
-        SET first_name = ?, last_name = ?, birth_date = ?, death_date = ?, gender = ?, notes = ?
+        SET first_name = ?, last_name = ?,
+            birth_date = ?, death_date = ?,
+            birth_year = ?, birth_month = ?, birth_day = ?,
+            death_year = ?, death_month = ?, death_day = ?,
+            gender = ?, notes = ?
         WHERE id = ?
         """,
-        (first_name, last_name, birth_date, death_date, gender, notes, person_id)
+        (
+            first_name, last_name,
+            birth_date, death_date,
+            birth_year, birth_month, birth_day,
+            death_year, death_month, death_day,
+            gender, notes, person_id
+        )
     )
     conn.commit()
     conn.close()
@@ -127,33 +158,44 @@ def delete_tree_data(tree_id):
 # ==============================
 
 # ========= Поиск ===============
-def search_persons(query, limit=10):
+def search_persons(query, tree_id=None, exclude_id=None, limit=10):
     conn = get_db()
     cur = conn.cursor()
 
-    # страховка: если вдруг query пустой
     q = (query or "").strip()
     if not q:
         conn.close()
         return []
 
-    # %q% — значит "содержит q где угодно"
     like = f"%{q}%"
 
-    # Ищем по:
-    # 1) first_name LIKE
-    # 2) last_name LIKE
-    # 3) "first_name + пробел + last_name" LIKE (например "John Smith")
-    cur.execute("""
+    sql = """
         SELECT id, first_name, last_name, gender
         FROM persons
-        WHERE first_name LIKE ?
-           OR last_name LIKE ?
-           OR (first_name || ' ' || IFNULL(last_name, '')) LIKE ?
-        ORDER BY first_name ASC
-        LIMIT ?
-    """, (like, like, like, limit))
+        WHERE 1=1
+    """
+    params = []
 
+    if tree_id:
+        sql += " AND tree_id = ?"
+        params.append(tree_id)
+
+    if exclude_id is not None:
+        sql += " AND id != ?"
+        params.append(exclude_id)
+
+    sql += """
+       AND (
+            first_name LIKE ?
+         OR last_name LIKE ?
+         OR (first_name || ' ' || IFNULL(last_name, '')) LIKE ?
+       )
+       ORDER BY first_name ASC
+       LIMIT ?
+    """
+    params.extend([like, like, like, limit])
+
+    cur.execute(sql, params)
     rows = cur.fetchall()
     conn.close()
     return rows
@@ -177,7 +219,73 @@ def add_relationship(person_id, relative_id, relation_type):
     )
     conn.commit()
     conn.close()
-# ==============================    
+# ==============================   
+
+# ======== нет дубликата====================== 
+def relationship_exists(person_id, relative_id, relation_type):
+    conn = get_db()
+    cur = conn.cursor()
+
+    if relation_type == "spouse":
+        cur.execute(
+            """
+            SELECT 1
+            FROM relationships
+            WHERE relation_type = 'spouse'
+              AND (
+                    (person_id = ? AND relative_id = ?)
+                 OR (person_id = ? AND relative_id = ?)
+              )
+            LIMIT 1
+            """,
+            (person_id, relative_id, relative_id, person_id)
+        )
+    else:
+        cur.execute(
+            """
+            SELECT 1
+            FROM relationships
+            WHERE person_id = ? AND relative_id = ? AND relation_type = ?
+            LIMIT 1
+            """,
+            (person_id, relative_id, relation_type)
+        )
+
+    row = cur.fetchone()
+    conn.close()
+    return row is not None
+# ============================== 
+
+# =============== удалить связь ================
+def delete_relationship(person_id, relative_id, relation_type):
+    conn = get_db()
+    cur = conn.cursor()
+
+    if relation_type == "spouse":
+        cur.execute(
+            """
+            DELETE FROM relationships
+            WHERE relation_type = 'spouse'
+              AND (
+                    (person_id = ? AND relative_id = ?)
+                 OR (person_id = ? AND relative_id = ?)
+              )
+            """,
+            (person_id, relative_id, relative_id, person_id)
+        )
+    else:
+        cur.execute(
+            """
+            DELETE FROM relationships
+            WHERE person_id = ? AND relative_id = ? AND relation_type = ?
+            """,
+            (person_id, relative_id, relation_type)
+        )
+
+    conn.commit()
+    conn.close()
+# ==============================  
+
 
 def get_parents(person_id):
     """Возвращает список родителей для данного человека

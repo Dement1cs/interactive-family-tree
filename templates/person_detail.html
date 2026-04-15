@@ -59,12 +59,15 @@
         <div class="person-main-info">
             <h2>{{ person["first_name"] }} {{ person["last_name"] or "" }}</h2>
 
+            {% set birth_display = format_partial_date(person["birth_year"], person["birth_month"], person["birth_day"], person["birth_date"]) %}
+            {% set death_display = format_partial_date(person["death_year"], person["death_month"], person["death_day"], person["death_date"]) %}
+
             <p class="person-dates">
-                {% if person["birth_date"] %}
-                    Born: {{ person["birth_date"] }}
+                {% if birth_display %}
+                    Born: {{ birth_display }}
                 {% endif %}
-                {% if person["death_date"] %}
-                    &nbsp;•&nbsp; Died: {{ person["death_date"] }}
+                {% if death_display %}
+                    &nbsp;•&nbsp; Died: {{ death_display }}
                 {% endif %}
             </p>
 
@@ -76,16 +79,33 @@
 
     <div class="person-body">
         <section class="person-section">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
                 <h3>Relations</h3>
                 <a href="{{ url_for('add_relation', person_id=person['id'], tree_id=tree_id) }}">Add relation</a>
+                <a href="{{ url_for('add_relation', person_id=person['id'], tree_id=tree_id, relation_type='parent') }}">Add parent</a>
+                <a href="{{ url_for('add_relation', person_id=person['id'], tree_id=tree_id, relation_type='child') }}">Add child</a>
+                <a href="{{ url_for('add_relation', person_id=person['id'], tree_id=tree_id, relation_type='spouse') }}">Add spouse</a>
             </div>
 
             {% if parents and parents|length > 0 %}
                 <h4>Parents</h4>
                 <ul>
                     {% for p in parents %}
-                        <li>{{ role_label('parent', p['gender']) }}: <a href="{{ url_for('person_detail', person_id=p['id'], tree_id=tree_id) }}">{{ p['first_name'] }} {{ p['last_name'] }}</a></li>
+                        <li>
+                            {{ role_label('parent', p['gender']) }}:
+                            <a href="{{ url_for('person_detail', person_id=p['id'], tree_id=tree_id) }}">
+                                {{ p['first_name'] }} {{ p['last_name'] }}
+                            </a>
+
+                            <form action="{{ url_for('delete_relation', person_id=p['id'], tree_id=tree_id) }}"
+                                method="post"
+                                style="display:inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="relative_id" value="{{ person['id'] }}">
+                                <input type="hidden" name="relation_type" value="parent">
+                                <button type="submit">Remove</button>
+                            </form>
+                        </li>
                     {% endfor %}
                 </ul>
             {% endif %}
@@ -105,7 +125,21 @@
                 <h4>Children</h4>
                 <ul>
                     {% for c in children %}
-                        <li>{{ role_label('child', c['gender']) }}: <a href="{{ url_for('person_detail', person_id=c['id'], tree_id=tree_id) }}">{{ c['first_name'] }} {{ c['last_name'] }}</a></li>
+                        <li>
+                        {{ role_label('child', c['gender']) }}:
+                        <a href="{{ url_for('person_detail', person_id=c['id'], tree_id=tree_id) }}">
+                            {{ c['first_name'] }} {{ c['last_name'] }}
+                        </a>
+
+                        <form action="{{ url_for('delete_relation', person_id=person['id'], tree_id=tree_id) }}"
+                            method="post"
+                            style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="relative_id" value="{{ c['id'] }}">
+                            <input type="hidden" name="relation_type" value="parent">
+                            <button type="submit">Remove</button>
+                        </form>
+                    </li>
                     {% endfor %}
                 </ul>
             {% else %}
@@ -120,6 +154,15 @@
                         <a href="{{ url_for('person_detail', person_id=s['id'], tree_id=tree_id) }}">
                             {{ s["first_name"] }} {{ s["last_name"] or "" }}
                         </a>
+
+                        <form action="{{ url_for('delete_relation', person_id=person['id'], tree_id=tree_id) }}"
+                            method="post"
+                            style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="relative_id" value="{{ s['id'] }}">
+                            <input type="hidden" name="relation_type" value="spouse">
+                            <button type="submit">Remove</button>
+                        </form>
                     </li>
                 {% endfor %}
                 </ul>

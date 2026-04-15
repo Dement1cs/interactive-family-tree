@@ -114,6 +114,27 @@
     return y == null ? `u_${x}_none` : `u_${x}_${y}`;
   }
 
+  function formatPartialDate(year, month, day, fallback) {
+  const monthNames = {
+    1: "January", 2: "February", 3: "March", 4: "April",
+    5: "May", 6: "June", 7: "July", 8: "August",
+    9: "September", 10: "October", 11: "November", 12: "December"
+  };
+
+  if (year) {
+    if (month) {
+      const monthName = monthNames[Number(month)] || String(month);
+      if (day) {
+        return `${Number(day)} ${monthName} ${year}`;
+      }
+      return `${monthName} ${year}`;
+    }
+    return String(year);
+  }
+
+  return fallback || "";
+}
+
   try {
     // Берём данные дерева с сервера
     const params = new URLSearchParams(window.location.search);
@@ -141,7 +162,15 @@
       const fullName = (`${p.first_name || ""} ${p.last_name || ""}`).trim() || `Person #${p.id}`;
       
       // Даты: "birth – death" (если есть)
-      const lifeLine = [p.birth_date || "", p.death_date || ""].filter(Boolean).join(" – ");
+      const birthDisplay = formatPartialDate(
+        p.birth_year, p.birth_month, p.birth_day, p.birth_date
+      );
+
+      const deathDisplay = formatPartialDate(
+        p.death_year, p.death_month, p.death_day, p.death_date
+      );
+
+      const lifeLine = [birthDisplay, deathDisplay].filter(Boolean).join(" – ");
       
       // key обязателен: это id узла
       return { key: p.id, category: "", fullName, lifeLine };

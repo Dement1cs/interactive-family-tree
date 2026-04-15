@@ -11,6 +11,8 @@ from db import(
     delete_person,
     delete_tree_data,
     add_relationship,
+    relationship_exists,
+    delete_relationship,
     get_parents,
     get_children,
     get_spouses,
@@ -51,6 +53,32 @@ def get_current_user_tree_or_404(tree_id):
         abort(404)
 
     return tree
+
+def to_int_or_none(value):
+    value = (value or "").strip()
+    return int(value) if value else None
+
+# better looks date -------------------------
+MONTH_NAMES = {
+    1: "January", 2: "February", 3: "March", 4: "April",
+    5: "May", 6: "June", 7: "July", 8: "August",
+    9: "September", 10: "October", 11: "November", 12: "December"
+}
+
+def format_partial_date(year=None, month=None, day=None, fallback=None):
+    if year:
+        if month:
+            month_name = MONTH_NAMES.get(int(month), str(month))
+            if day:
+                return f"{int(day)} {month_name} {year}"
+            return f"{month_name} {year}"
+        return str(year)
+    return fallback or ""
+
+@app.context_processor
+def inject_helpers():
+    return dict(format_partial_date=format_partial_date)
+# better looks date end -------------------------
 
 #======== register роут =============================
 @app.route("/register", methods=["GET", "POST"])
@@ -155,13 +183,32 @@ def add_person_route():
         last_name = request.form.get("last_name") or None
         birth_date = request.form.get("birth_date") or None
         death_date = request.form.get("death_date") or None
+
+        birth_year = to_int_or_none(request.form.get("birth_year"))
+        birth_month = to_int_or_none(request.form.get("birth_month"))
+        birth_day = to_int_or_none(request.form.get("birth_day"))
+
+        death_year = to_int_or_none(request.form.get("death_year"))
+        death_month = to_int_or_none(request.form.get("death_month"))
+        death_day = to_int_or_none(request.form.get("death_day"))
+
         gender = request.form.get("gender") or None
         notes = request.form.get("notes") or None
 
         if not first_name:
             return "First name is required", 400
         
-        add_person(first_name, last_name, birth_date, death_date, gender, notes, tree_id)
+        add_person(
+            first_name,
+            last_name,
+            birth_date,
+            death_date,
+            birth_year, birth_month, birth_day,
+            death_year, death_month, death_day,
+            gender,
+            notes,
+            tree_id
+        )
         return redirect(url_for("persons", tree_id=tree_id))
 
     return render_template("person_add.html", tree_id=tree_id)
@@ -211,13 +258,32 @@ def edit_person(person_id):
         last_name = request.form.get("last_name") or None
         birth_date = request.form.get("birth_date") or None
         death_date = request.form.get("death_date") or None
+
+        birth_year = to_int_or_none(request.form.get("birth_year"))
+        birth_month = to_int_or_none(request.form.get("birth_month"))
+        birth_day = to_int_or_none(request.form.get("birth_day"))
+
+        death_year = to_int_or_none(request.form.get("death_year"))
+        death_month = to_int_or_none(request.form.get("death_month"))
+        death_day = to_int_or_none(request.form.get("death_day"))
+
         gender = request.form.get("gender") or None
         notes = request.form.get("notes") or None
 
         if not first_name:
             return "First name is required", 400
         
-        update_person(person_id, first_name, last_name, birth_date, death_date, gender, notes)
+        update_person(
+            person_id,
+            first_name,
+            last_name,
+            birth_date,
+            death_date,
+            birth_year, birth_month, birth_day,
+            death_year, death_month, death_day,
+            gender,
+            notes
+        )
         return redirect(url_for("person_detail", person_id=person_id, tree_id=tree_id))
     
     return render_template("person_edit.html", person=person, tree_id=tree_id)
@@ -229,41 +295,102 @@ def edit_person(person_id):
 def add_relation(person_id):
     tree_id = request.args.get("tree_id")
     current_tree = get_current_user_tree_or_404(tree_id)
+    preset_relation_type = request.args.get("relation_type")
 
     person = get_person(person_id)
     if person is None:
         return "Person not found", 404
 
-    people = get_all_persons(tree_id)
+    people = [p for p in get_all_persons(tree_id) if p["id"] != person_id]
+    error = None
 
     if request.method == "POST":
         relation_type = request.form.get("relation_type")
         relative_id = request.form.get("relative_id")
 
         if not relation_type or not relative_id:
-            return "Relation type and relative are required", 400
+            error = "Relation type and person are required."
+            return render_template(
+                "relation_add.html",
+                person=person,
+                people=people,
+                tree_id=tree_id,
+                error=error,
+                preset_relation_type=preset_relation_type
+            ), 400
 
         try:
             relative_id = int(relative_id)
         except ValueError:
-            return "Invalid relative id", 400
-        
+            error = "Invalid person selected."
+            return render_template(
+                "relation_add.html",
+                person=person,
+                people=people,
+                tree_id=tree_id,
+                error=error,
+                preset_relation_type=preset_relation_type
+            ), 400
+
         if relative_id == person_id:
-            return "Cannot create relation with self", 400
+            error = "You cannot create a relation with the same person."
+            return render_template(
+                "relation_add.html",
+                person=person,
+                people=people,
+                tree_id=tree_id,
+                error=error,
+                preset_relation_type=preset_relation_type
+            ), 400
 
         if relation_type == "parent":
+            if relationship_exists(relative_id, person_id, "parent"):
+                error = "This parent relation already exists."
+                return render_template(
+                    "relation_add.html",
+                    person=person,
+                    people=people,
+                    tree_id=tree_id,
+                    error=error,
+                    preset_relation_type=preset_relation_type
+                ), 400
+
             add_relationship(
                 person_id=relative_id,
                 relative_id=person_id,
                 relation_type="parent"
             )
+
         elif relation_type == "child":
+            if relationship_exists(person_id, relative_id, "parent"):
+                error = "This child relation already exists."
+                return render_template(
+                    "relation_add.html",
+                    person=person,
+                    people=people,
+                    tree_id=tree_id,
+                    error=error,
+                    preset_relation_type=preset_relation_type
+                ), 400
+
             add_relationship(
                 person_id=person_id,
                 relative_id=relative_id,
                 relation_type="parent"
             )
+
         elif relation_type == "spouse":
+            if relationship_exists(person_id, relative_id, "spouse"):
+                error = "This spouse relation already exists."
+                return render_template(
+                    "relation_add.html",
+                    person=person,
+                    people=people,
+                    tree_id=tree_id,
+                    error=error,
+                    preset_relation_type=preset_relation_type
+                ), 400
+
             add_relationship(
                 person_id=person_id,
                 relative_id=relative_id,
@@ -275,11 +402,49 @@ def add_relation(person_id):
                 relation_type="spouse"
             )
         else:
-            return "Unknown relation type", 400
+            error = "Unknown relation type."
+            return render_template(
+                "relation_add.html",
+                person=person,
+                people=people,
+                tree_id=tree_id,
+                error=error,
+                preset_relation_type=preset_relation_type
+            ), 400
 
         return redirect(url_for("person_detail", person_id=person_id, tree_id=tree_id))
 
-    return render_template("relation_add.html", person=person, people=people, tree_id=tree_id)
+    return render_template(
+        "relation_add.html",
+        person=person,
+        people=people,
+        tree_id=tree_id,
+        error=error,
+        preset_relation_type=preset_relation_type
+    )
+# ==================================================
+
+# ====== Удаление связи ============================
+@app.route("/persons/<int:person_id>/relations/delete", methods=["POST"])
+@login_required
+def delete_relation(person_id):
+    tree_id = request.args.get("tree_id")
+    current_tree = get_current_user_tree_or_404(tree_id)
+
+    relative_id = request.form.get("relative_id")
+    relation_type = request.form.get("relation_type")
+
+    if not relative_id or not relation_type:
+        return "Missing relation data", 400
+
+    try:
+        relative_id = int(relative_id)
+    except ValueError:
+        return "Invalid relative id", 400
+
+    delete_relationship(person_id, relative_id, relation_type)
+
+    return redirect(url_for("person_detail", person_id=person_id, tree_id=tree_id))
 # ==================================================
 
 # ====== Удаление человека ======
@@ -395,18 +560,22 @@ def api_persons():
 @app.route("/api/persons/search")
 @login_required
 def api_person_search():
-    # Берём параметр q из URL: /api/persons/search?q=...
     q = request.args.get("q", "").strip()
+    tree_id = request.args.get("tree_id")
+    exclude_id = request.args.get("exclude_id")
 
-    # пустой запрос — пустой список
     if not q:
         return jsonify([])
 
-    # Ищем людей в базе (ограничиваем 10 результатами)
-    results = search_persons(q, limit=20)
+    current_tree = get_current_user_tree_or_404(tree_id)
 
-    # rows могут быть sqlite.Row, поэтому превращаем каждую строку в dict
-    # и отдаём список словарей в JSON
+    try:
+        exclude_id = int(exclude_id) if exclude_id else None
+    except ValueError:
+        exclude_id = None
+
+    results = search_persons(q, tree_id=tree_id, exclude_id=exclude_id, limit=20)
+
     return jsonify([dict(r) for r in results])
 # ================================
 
@@ -424,7 +593,11 @@ def api_tree():
 
     if tree_id:
         persons = conn.execute("""
-            SELECT id, first_name, last_name, birth_date, death_date, notes, tree_id
+            SELECT id, first_name, last_name,
+                birth_date, death_date,
+                birth_year, birth_month, birth_day,
+                death_year, death_month, death_day,
+                notes, tree_id
             FROM persons
             WHERE tree_id = ?
         """, (tree_id,)).fetchall()

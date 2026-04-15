@@ -5,15 +5,19 @@
 {% block content %}
 <h2>Add relation for {{ person["first_name"] }} {{ person["last_name"] or "" }}</h2>
 
+{% if error %}
+    <p style="color: red; margin-bottom: 12px;">{{ error }}</p>
+{% endif %}
+
 <form action="{{ url_for('add_relation', person_id=person['id'], tree_id=tree_id) }}" method="post">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div>
         <label for="relation_type">Relation type</label><br>
         <select id="relation_type" name="relation_type" required>
             <option value="">-- choose --</option>
-            <option value="parent">Parent</option>
-            <option value="child">Child</option>
-            <option value="spouse">Spouse</option>
+            <option value="parent" {% if preset_relation_type == "parent" %}selected{% endif %}>Parent</option>
+            <option value="child" {% if preset_relation_type == "child" %}selected{% endif %}>Child</option>
+            <option value="spouse" {% if preset_relation_type == "spouse" %}selected{% endif %}>Spouse</option>
         </select>
     </div>
 
@@ -27,7 +31,7 @@
         autocomplete="off"
     >
 
-    <!-- Скрытое поле: сюда мы положим ID выбранного человека.
+    <!-- Скрытое поле: сдесь ID выбранного человека.
      Оно отправится на сервер при submit формы -->
     <input type="hidden" name="relative_id" id="relative_id">
 
@@ -37,7 +41,7 @@
     <!-- Текст “Selected: ...” для пользователя -->
     <p id="selected_person" class="muted"></p>
 
-    <!-- Отправка формы (сохранить связь) -->
+    <!-- сохранить связь -->
     <button type="submit">Save relation</button>
 </form>
 
@@ -78,14 +82,18 @@
 
     // Функция поиска: делает запрос к Flask API и возвращает массив persons
     async function search(q) {
+
+        const treeId = "{{ tree_id }}";
+        const currentPersonId = "{{ person['id'] }}";
         // если уже был запрос — отменяем его
         if (lastController) lastController.abort();
         lastController = new AbortController();
 
         // GET /api/persons/search?q=
-        const res = await fetch(`/api/persons/search?q=${encodeURIComponent(q)}`, {
-        signal: lastController.signal
-        });
+        const res = await fetch(
+            `/api/persons/search?q=${encodeURIComponent(q)}&tree_id=${encodeURIComponent(treeId)}&exclude_id=${encodeURIComponent(currentPersonId)}`,
+            { signal: lastController.signal }
+        );
 
         // если сервер вернул ошибку — считаем что результатов нет
         if (!res.ok) return [];
@@ -103,7 +111,7 @@
         selected.textContent = "";
 
         // Если слишком коротко (меньше 2 символов) — не ищем
-        if (q.length < 2) {
+        if (q.length < 1) {
         clearResults();
         return;
         }
