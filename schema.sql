@@ -1,7 +1,9 @@
 CREATE TABLE IF NOT EXISTS persons (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     first_name TEXT NOT NULL,
+    middle_name TEXT,
     last_name TEXT,
+    maiden_name TEXT,
     birth_date TEXT,
     death_date TEXT,
     birth_year INTEGER,

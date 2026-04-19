@@ -62,27 +62,26 @@ def get_person(person_id: int):
 # ==============================
 
 # ======= Добавляет нового человека ===============
-def add_person(first_name, last_name=None,
+def add_person(first_name, middle_name=None, last_name=None, maiden_name=None,
                birth_date=None, death_date=None,
                birth_year=None, birth_month=None, birth_day=None,
                death_year=None, death_month=None, death_day=None,
                gender=None, notes=None, tree_id=None):
-    
     conn = get_db()
     cur = conn.cursor()
     cur.execute(
         """
         INSERT INTO persons (
-            first_name, last_name,
+            first_name, middle_name, last_name, maiden_name,
             birth_date, death_date,
             birth_year, birth_month, birth_day,
             death_year, death_month, death_day,
             gender, notes, tree_id
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
-            first_name, last_name,
+            first_name, middle_name, last_name, maiden_name,
             birth_date, death_date,
             birth_year, birth_month, birth_day,
             death_year, death_month, death_day,
@@ -94,7 +93,7 @@ def add_person(first_name, last_name=None,
 # ==============================
 
 # ======= Обновляет данные о человеке с указанным id ==============
-def update_person(person_id, first_name, last_name=None,
+def update_person(person_id, first_name, middle_name=None, last_name=None, maiden_name=None,
                   birth_date=None, death_date=None,
                   birth_year=None, birth_month=None, birth_day=None,
                   death_year=None, death_month=None, death_day=None,
@@ -104,7 +103,7 @@ def update_person(person_id, first_name, last_name=None,
     cur.execute(
         """
         UPDATE persons
-        SET first_name = ?, last_name = ?,
+        SET first_name = ?, middle_name = ?, last_name = ?, maiden_name = ?,
             birth_date = ?, death_date = ?,
             birth_year = ?, birth_month = ?, birth_day = ?,
             death_year = ?, death_month = ?, death_day = ?,
@@ -112,7 +111,7 @@ def update_person(person_id, first_name, last_name=None,
         WHERE id = ?
         """,
         (
-            first_name, last_name,
+            first_name, middle_name, last_name, maiden_name,
             birth_date, death_date,
             birth_year, birth_month, birth_day,
             death_year, death_month, death_day,

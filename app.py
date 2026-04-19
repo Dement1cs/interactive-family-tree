@@ -180,7 +180,9 @@ def add_person_route():
 
     if request.method == "POST":
         first_name = request.form.get("first_name")
+        middle_name = request.form.get("middle_name") or None
         last_name = request.form.get("last_name") or None
+        maiden_name = request.form.get("maiden_name") or None
         birth_date = request.form.get("birth_date") or None
         death_date = request.form.get("death_date") or None
 
@@ -200,7 +202,9 @@ def add_person_route():
         
         add_person(
             first_name,
+            middle_name,
             last_name,
+            maiden_name,
             birth_date,
             death_date,
             birth_year, birth_month, birth_day,
@@ -255,7 +259,9 @@ def edit_person(person_id):
     
     if request.method == "POST":
         first_name = request.form.get("first_name")
+        middle_name = request.form.get("middle_name") or None
         last_name = request.form.get("last_name") or None
+        maiden_name = request.form.get("maiden_name") or None
         birth_date = request.form.get("birth_date") or None
         death_date = request.form.get("death_date") or None
 
@@ -276,7 +282,9 @@ def edit_person(person_id):
         update_person(
             person_id,
             first_name,
+            middle_name,
             last_name,
+            maiden_name,
             birth_date,
             death_date,
             birth_year, birth_month, birth_day,

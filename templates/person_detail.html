@@ -57,7 +57,15 @@
         </div>
 
         <div class="person-main-info">
-            <h2>{{ person["first_name"] }} {{ person["last_name"] or "" }}</h2>
+            <h2>
+                {{ person["first_name"] }}
+                {% if person["middle_name"] %} {{ person["middle_name"] }}{% endif %}
+                {% if person["last_name"] %} {{ person["last_name"] }}{% endif %}
+            </h2>
+
+            {% if person["maiden_name"] %}
+                <p class="person-maiden-name">Maiden name: {{ person["maiden_name"] }}</p>
+            {% endif %}
 
             {% set birth_display = format_partial_date(person["birth_year"], person["birth_month"], person["birth_day"], person["birth_date"]) %}
             {% set death_display = format_partial_date(person["death_year"], person["death_month"], person["death_day"], person["death_date"]) %}
