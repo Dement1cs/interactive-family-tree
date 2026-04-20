@@ -122,6 +122,86 @@ def update_person(person_id, first_name, middle_name=None, last_name=None, maide
     conn.close()
 # ==============================
 
+# ==update_person_photo============================
+def update_person_photo(person_id, photo_filename):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        "UPDATE persons SET photo_filename = ? WHERE id = ?",
+        (photo_filename, person_id)
+    )
+    conn.commit()
+    conn.close()
+# ==============================
+
+# ==remove_person_photo============================
+def remove_person_photo(person_id):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        "UPDATE persons SET photo_filename = NULL WHERE id = ?",
+        (person_id,)
+    )
+    conn.commit()
+    conn.close()
+# ==============================
+
+
+# ===== GALLARY =========================
+def add_gallery_photo(person_id, filename):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        "INSERT INTO person_photos (person_id, filename) VALUES (?, ?)",
+        (person_id, filename)
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_person_photos(person_id):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT id, person_id, filename, uploaded_at
+        FROM person_photos
+        WHERE person_id = ?
+        ORDER BY uploaded_at DESC, id DESC
+        """,
+        (person_id,)
+    )
+    rows = cur.fetchall()
+    conn.close()
+    return rows
+
+
+def get_gallery_photo(photo_id):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT id, person_id, filename, uploaded_at
+        FROM person_photos
+        WHERE id = ?
+        """,
+        (photo_id,)
+    )
+    row = cur.fetchone()
+    conn.close()
+    return row
+
+
+def delete_gallery_photo(photo_id):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM person_photos WHERE id = ?", (photo_id,))
+    conn.commit()
+    conn.close()
+# ==========================================================================================
+
+
+
 # ==========Удаляет человека по id из таблицы persons =================
 def delete_person(person_id):
     conn = get_db()

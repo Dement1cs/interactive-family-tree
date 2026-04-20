@@ -50,10 +50,17 @@
 
     <div class="person-header">
         <div class="person-avatar">
-            <!-- заглушка -->
-            <span class="avatar-initials">
-                {{ person["first_name"][0] }}{% if person["last_name"] %}{{ person["last_name"][0] }}{% endif %}
-            </span>
+            {% if person["photo_filename"] %}
+                <img
+                    src="{{ url_for('static', filename='uploads/' ~ person['photo_filename']) }}"
+                    alt="Photo of {{ person['first_name'] }}"
+                    style="width:140px; height:140px; object-fit:cover; border-radius:12px; border:1px solid #ccc;"
+                >
+            {% else %}
+                <span class="avatar-initials">
+                    {{ person["first_name"][0] }}{% if person["last_name"] %}{{ person["last_name"][0] }}{% endif %}
+                </span>
+            {% endif %}
         </div>
 
         <div class="person-main-info">
@@ -82,10 +89,35 @@
             {% if person["gender"] %}
                 <p class="person-gender">Gender: {{ person["gender"] }}</p>
             {% endif %}
+
         </div>
     </div>
 
     <div class="person-body">
+        
+        <section class="person-section">
+            <h3>Profile Photo</h3>
+
+            <form action="{{ url_for('upload_person_photo_route', person_id=person['id'], tree_id=tree_id) }}"
+                method="post"
+                enctype="multipart/form-data"
+                style="margin-bottom: 10px;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="file" name="photo" accept="image/*" required>
+                <button type="submit">Upload photo</button>
+            </form>
+
+            {% if person["photo_filename"] %}
+                <form action="{{ url_for('delete_person_photo_route', person_id=person['id'], tree_id=tree_id) }}"
+                    method="post"
+                    onsubmit="return confirm('Delete this photo?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit">Delete photo</button>
+                </form>
+            {% endif %}
+        </section>
+
+
         <section class="person-section">
             <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
                 <h3>Relations</h3>
@@ -179,16 +211,19 @@
             {% endif %}
 
             {% if grandparents and grandparents|length > 0 %}
-            <h4>Grandparents</h4>
+                <h4>Grandparents</h4>
                 <ul>
                     {% for g in grandparents %}
-                        <li>{{ role_label('grandparent', g['gender']) }}: <a href="{{ url_for('person_detail', person_id=g['id'], tree_id=tree_id) }}">{{ g['first_name'] }} {{ g['last_name'] }}</a></li>
+                        <li>
+                            {{ role_label('grandparent', g['gender']) }}:
+                            <a href="{{ url_for('person_detail', person_id=g['id'], tree_id=tree_id) }}">
+                                {{ g['first_name'] }} {{ g['last_name'] }}
+                            </a>
+                        </li>
                     {% endfor %}
                 </ul>
-            {% else %}
-                <p class="muted">No grandparents detected.</p>
             {% endif %}
-        </section>
+            </section>
 
         
 
@@ -204,15 +239,103 @@
 
         <!-- Gallery -->
         <section class="person-section">
-            <h3>Photo Gallery</h3>
-            <p class="muted">
-                Photo gallery placeholder. In the future this section can show uploaded photos.
-            </p>
-        </section>
-    </div>
+        <h3>Photo Gallery</h3>
+
+        <form action="{{ url_for('upload_gallery_photo_route', person_id=person['id'], tree_id=tree_id) }}"
+            method="post"
+            enctype="multipart/form-data"
+            style="margin-bottom: 12px;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="file" name="gallery_photo" accept="image/*" required>
+            <button type="submit">Upload to gallery</button>
+        </form>
+
+        {% if photos and photos|length > 0 %}
+            <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                {% for photo in photos %}
+                    <div style="border:1px solid #ccc; padding:8px; border-radius:8px;">
+                        <img
+                            src="{{ url_for('static', filename='uploads/' ~ photo['filename']) }}"
+                            alt="Gallery photo"
+                            class="gallery-thumb"
+                            data-fullsrc="{{ url_for('static', filename='uploads/' ~ photo['filename']) }}"
+                            style="width:140px; height:140px; object-fit:cover; display:block; margin-bottom:8px; cursor:pointer;"
+                        >
+
+                        <form action="{{ url_for('delete_gallery_photo_route', person_id=person['id'], photo_id=photo['id'], tree_id=tree_id) }}"
+                            method="post"
+                            onsubmit="return confirm('Delete this gallery photo?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit">Delete</button>
+                        </form>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="muted">No gallery photos yet.</p>
+        {% endif %}
+    </section>
+        </div>
 
     <p>
         <a href="{{ url_for('persons', tree_id=tree_id) }}">Back to list</a>
     </p>
 </div>
+
+<div id="photoLightbox"
+     style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:9999; align-items:center; justify-content:center; padding:30px;">
+    
+    <button id="lightboxClose"
+            type="button"
+            style="position:absolute; top:20px; right:20px; font-size:28px; background:none; border:none; color:white; cursor:pointer;">
+        ×
+    </button>
+
+    <img id="lightboxImage"
+         src=""
+         alt="Full size photo"
+         style="max-width:90vw; max-height:90vh; border-radius:10px; box-shadow:0 0 20px rgba(0,0,0,0.5);">
+</div>
+
+<script>
+(function () {
+    const lightbox = document.getElementById("photoLightbox");
+    const lightboxImage = document.getElementById("lightboxImage");
+    const closeBtn = document.getElementById("lightboxClose");
+    const thumbs = document.querySelectorAll(".gallery-thumb");
+
+    function openLightbox(src) {
+        lightboxImage.src = src;
+        lightbox.style.display = "flex";
+        document.body.style.overflow = "hidden";
+    }
+
+    function closeLightbox() {
+        lightbox.style.display = "none";
+        lightboxImage.src = "";
+        document.body.style.overflow = "";
+    }
+
+    thumbs.forEach(img => {
+        img.addEventListener("click", () => {
+            openLightbox(img.dataset.fullsrc);
+        });
+    });
+
+    closeBtn.addEventListener("click", closeLightbox);
+
+    lightbox.addEventListener("click", (e) => {
+        if (e.target === lightbox) {
+            closeLightbox();
+        }
+    });
+
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && lightbox.style.display === "flex") {
+            closeLightbox();
+        }
+    });
+})();
+</script>
+
 {% endblock %}

@@ -1,4 +1,6 @@
 import os
+import uuid
+from werkzeug.utils import secure_filename
 from flask import Flask, render_template, request, redirect, url_for, jsonify, abort
 from db import(
     get_db,
@@ -8,6 +10,12 @@ from db import(
     add_person, 
     get_person,
     update_person,
+    update_person_photo,
+    remove_person_photo,
+    add_gallery_photo,
+    get_person_photos,
+    get_gallery_photo,
+    delete_gallery_photo,
     delete_person,
     delete_tree_data,
     add_relationship,
@@ -34,6 +42,16 @@ app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///app.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+#==================================================
+
+#==images===============
+app.config["UPLOAD_FOLDER"] = os.path.join("static", "uploads")
+app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024  # 5 MB
+
+ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
+
+os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+#=======================
 
 db.init_app(app)
 migrate.init_app(app, db)
@@ -74,6 +92,11 @@ def format_partial_date(year=None, month=None, day=None, fallback=None):
             return f"{month_name} {year}"
         return str(year)
     return fallback or ""
+
+#======image helper function================
+def allowed_image_file(filename):
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_IMAGE_EXTENSIONS
+#===========================================
 
 @app.context_processor
 def inject_helpers():
@@ -224,7 +247,7 @@ def add_person_route():
 def person_detail(person_id):
     tree_id = request.args.get("tree_id")
     current_tree = get_current_user_tree_or_404(tree_id)
-
+    photos = get_person_photos(person_id)
     person = get_person(person_id)
     if person is None:
         return "Person not found", 404
@@ -233,6 +256,7 @@ def person_detail(person_id):
     spouses = get_spouses(person_id)
     siblings = get_siblings(person_id)
     grandparents = get_grandparents(person_id)
+    photos = get_person_photos(person_id)
 
     return render_template(
         "person_detail.html", 
@@ -242,7 +266,9 @@ def person_detail(person_id):
         spouses=spouses,
         siblings=siblings,
         grandparents=grandparents,
+        photos=photos,
         tree_id=tree_id
+        
     )
 # ==========================================================
 
@@ -469,6 +495,114 @@ def delete_person_route(person_id):
     delete_person(person_id)
     return redirect(url_for("persons", tree_id=tree_id))
 # =============================
+
+# === photo upload route ==========================
+@app.route("/persons/<int:person_id>/photo/upload", methods=["POST"])
+@login_required
+def upload_person_photo_route(person_id):
+    tree_id = request.args.get("tree_id")
+    current_tree = get_current_user_tree_or_404(tree_id)
+
+    person = get_person(person_id)
+    if person is None:
+        return "Person not found", 404
+
+    file = request.files.get("photo")
+    if not file or not file.filename:
+        return "No file selected", 400
+
+    if not allowed_image_file(file.filename):
+        return "Invalid image format", 400
+
+    # удалить старое фото с диска, если было
+    old_filename = person["photo_filename"]
+    if old_filename:
+        old_path = os.path.join(app.config["UPLOAD_FOLDER"], old_filename)
+        if os.path.exists(old_path):
+            os.remove(old_path)
+
+    ext = file.filename.rsplit(".", 1)[1].lower()
+    filename = secure_filename(f"person_{person_id}_{uuid.uuid4().hex}.{ext}")
+    save_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+
+    file.save(save_path)
+    update_person_photo(person_id, filename)
+
+    return redirect(url_for("person_detail", person_id=person_id, tree_id=tree_id))
+# ===================================================================
+
+# === photo delete route ==========================
+@app.route("/persons/<int:person_id>/photo/delete", methods=["POST"])
+@login_required
+def delete_person_photo_route(person_id):
+    tree_id = request.args.get("tree_id")
+    current_tree = get_current_user_tree_or_404(tree_id)
+
+    person = get_person(person_id)
+    if person is None:
+        return "Person not found", 404
+
+    filename = person["photo_filename"]
+    if filename:
+        file_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+
+    remove_person_photo(person_id)
+
+    return redirect(url_for("person_detail", person_id=person_id, tree_id=tree_id))
+# ===== uploading photos to the gallery =============================
+@app.route("/persons/<int:person_id>/gallery/upload", methods=["POST"])
+@login_required
+def upload_gallery_photo_route(person_id):
+    tree_id = request.args.get("tree_id")
+    current_tree = get_current_user_tree_or_404(tree_id)
+
+    person = get_person(person_id)
+    if person is None:
+        return "Person not found", 404
+
+    file = request.files.get("gallery_photo")
+    if not file or not file.filename:
+        return "No file selected", 400
+
+    if not allowed_image_file(file.filename):
+        return "Invalid image format", 400
+
+    ext = file.filename.rsplit(".", 1)[1].lower()
+    filename = secure_filename(f"gallery_{person_id}_{uuid.uuid4().hex}.{ext}")
+    save_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+
+    file.save(save_path)
+    add_gallery_photo(person_id, filename)
+
+    return redirect(url_for("person_detail", person_id=person_id, tree_id=tree_id))
+# ===================================================================
+
+# ======= Delete from gallery ============================================================
+@app.route("/persons/<int:person_id>/gallery/<int:photo_id>/delete", methods=["POST"])
+@login_required
+def delete_gallery_photo_route(person_id, photo_id):
+    tree_id = request.args.get("tree_id")
+    current_tree = get_current_user_tree_or_404(tree_id)
+
+    person = get_person(person_id)
+    if person is None:
+        return "Person not found", 404
+
+    photo = get_gallery_photo(photo_id)
+    if photo is None or photo["person_id"] != person_id:
+        return "Photo not found", 404
+
+    file_path = os.path.join(app.config["UPLOAD_FOLDER"], photo["filename"])
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    delete_gallery_photo(photo_id)
+
+    return redirect(url_for("person_detail", person_id=person_id, tree_id=tree_id))
+# ===================================================================
+
 
 # ====== DASHBOARD ==================================================
 # --------показывает список деревьев текущего пользователя-----------
