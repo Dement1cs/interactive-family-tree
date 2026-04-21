@@ -793,8 +793,27 @@ def remove_tree_access(tree_id, access_id):
     return redirect(url_for("manage_tree_access", tree_id=tree.id))
 # ===================================================================
 
+# ====== update access rout =============================================================
+@app.route("/trees/<int:tree_id>/access/<int:access_id>/role", methods=["POST"])
+@login_required
+def update_tree_access_role(tree_id, access_id):
+    tree = Tree.query.filter_by(id=tree_id, owner_user_id=current_user.id).first()
+    if tree is None:
+        return "Tree not found", 404
 
+    access = TreeAccess.query.filter_by(id=access_id, tree_id=tree.id).first()
+    if access is None:
+        return "Access entry not found", 404
 
+    new_role = request.form.get("role", "").strip().lower()
+    if new_role not in {"editor", "viewer"}:
+        return "Invalid role", 400
+
+    access.role = new_role
+    db.session.commit()
+
+    return redirect(url_for("manage_tree_access", tree_id=tree.id))
+# ===================================================================
 
 
 

@@ -7,43 +7,88 @@
 
 <p><strong>Tree:</strong> {{ tree.title }}</p>
 
+<p class="muted">
+    Editors can add and edit people, relations, and photos.<br>
+    Viewers can only open and view the tree.
+</p>
+
 {% if error %}
     <p style="color:red;">{{ error }}</p>
 {% endif %}
 
-<form action="{{ url_for('manage_tree_access', tree_id=tree.id) }}" method="post" style="margin-bottom: 16px;">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<section class="person-section" style="margin-bottom: 20px;">
+    <h3>Grant access</h3>
 
-    <label for="email">Invite by email</label><br>
-    <input type="email" id="email" name="email" placeholder="user@example.com" required>
+    <form action="{{ url_for('manage_tree_access', tree_id=tree.id) }}" method="post" style="display:flex; gap:10px; flex-wrap:wrap; align-items:end;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-    <label for="role" style="margin-left: 10px;">Role</label>
-    <select id="role" name="role">
-        <option value="editor">Editor</option>
-        <option value="viewer">Viewer</option>
-    </select>
+        <div>
+            <label for="email">User email</label><br>
+            <input type="email" id="email" name="email" placeholder="user@example.com" required>
+        </div>
 
-    <button type="submit">Grant access</button>
-</form>
+        <div>
+            <label for="role">Role</label><br>
+            <select id="role" name="role">
+                <option value="editor">Editor</option>
+                <option value="viewer">Viewer</option>
+            </select>
+        </div>
 
-{% if shared_entries and shared_entries|length > 0 %}
-    <ul>
-        {% for entry in shared_entries %}
-            <li>
-                {{ entry.user.email }} ({{ entry.role }})
-                <form action="{{ url_for('remove_tree_access', tree_id=tree.id, access_id=entry.id) }}"
-                      method="post"
-                      style="display:inline;"
-                      onsubmit="return confirm('Remove access for this user?');">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit">Remove</button>
-                </form>
-            </li>
-        {% endfor %}
-    </ul>
-{% else %}
-    <p>No shared users yet.</p>
-{% endif %}
+        <div>
+            <button type="submit">Grant access</button>
+        </div>
+    </form>
+</section>
+
+<section class="person-section">
+    <h3>Shared users</h3>
+
+    {% if shared_entries and shared_entries|length > 0 %}
+        <ul style="list-style:none; padding-left:0;">
+            {% for entry in shared_entries %}
+                <li style="border:1px solid #ddd; border-radius:8px; padding:12px; margin-bottom:10px;">
+                    <div style="margin-bottom:8px;">
+                        <strong>{{ entry.user.email }}</strong><br>
+                        <span class="muted">
+                            Role:
+                            {% if entry.role == "editor" %}
+                                Editor — can edit
+                            {% else %}
+                                Viewer — view only
+                            {% endif %}
+                        </span>
+                    </div>
+
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <form action="{{ url_for('update_tree_access_role', tree_id=tree.id, access_id=entry.id) }}"
+                              method="post"
+                              style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            {% if entry.role == "editor" %}
+                                <input type="hidden" name="role" value="viewer">
+                                <button type="submit">Change to viewer</button>
+                            {% else %}
+                                <input type="hidden" name="role" value="editor">
+                                <button type="submit">Change to editor</button>
+                            {% endif %}
+                        </form>
+
+                        <form action="{{ url_for('remove_tree_access', tree_id=tree.id, access_id=entry.id) }}"
+                              method="post"
+                              style="display:inline;"
+                              onsubmit="return confirm('Remove access for this user?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit">Remove access</button>
+                        </form>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="muted">No shared users yet.</p>
+    {% endif %}
+</section>
 
 <p>
     <a href="{{ url_for('dashboard') }}">Back to dashboard</a>
