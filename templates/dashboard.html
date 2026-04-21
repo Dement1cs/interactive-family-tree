@@ -26,6 +26,7 @@
                 <a href="{{ url_for('tree', tree_id=t.id) }}">Open</a>
                 <a href="{{ url_for('persons', tree_id=t.id) }}">People</a>
                 <a href="{{ url_for('edit_tree', tree_id=t.id) }}">Rename</a>
+                <a href="{{ url_for('manage_tree_access', tree_id=t.id) }}">Manage access</a>
 
                 <form action="{{ url_for('delete_tree_route', tree_id=t.id) }}"
                     method="post"
@@ -39,6 +40,28 @@
     </ul>
 {% else %}
     <p class="muted">You don't have any trees yet. Create one above.</p>
+{% endif %}
+
+<h3>Shared with me</h3>
+
+{% if shared_trees and shared_trees|length > 0 %}
+    <ul>
+        {% for t in shared_trees %}
+        <li>
+            <strong>{{ t.title }}</strong>
+            <span class="muted">
+                — {{ t.person_count }} {{ "person" if t.person_count == 1 else "people" }}
+            </span>
+            {% if t.owner_email %}
+                <span class="muted">— owner: {{ t.owner_email }}</span>
+            {% endif %}
+            <a href="{{ url_for('tree', tree_id=t.id) }}">Open</a>
+            <a href="{{ url_for('persons', tree_id=t.id) }}">People</a>
+        </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p class="muted">No trees have been shared with you yet.</p>
 {% endif %}
 
 {% endblock %}

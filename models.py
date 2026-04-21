@@ -26,3 +26,18 @@ class Tree(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     owner = db.relationship("User", backref="trees")
+
+class TreeAccess(db.Model):
+    __tablename__ = "tree_access"
+
+    id = db.Column(db.Integer, primary_key=True)
+    tree_id = db.Column(db.Integer, db.ForeignKey("trees.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    role = db.Column(db.String(20), nullable=False, default="editor")
+
+    tree = db.relationship("Tree", backref="shared_access")
+    user = db.relationship("User", backref="tree_access_entries")
+
+    __table_args__ = (
+        db.UniqueConstraint("tree_id", "user_id", name="uq_tree_access_tree_user"),
+    )

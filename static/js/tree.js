@@ -23,10 +23,9 @@
   diagram.nodeTemplate =
     $(go.Node, "Auto", // создает нод через $
       {
-        cursor: "pointer", // курсор станет рукой 
-        click: (e, node) => { // обработчик клика
-          const id = node.data.key; // создает константу id. / node.data обычный JS объект, который лежит в модели
-          const url = window.PERSON_URL_TEMPLATE.replace(/0$/, String(id)); // заменяет первое совпадение на id. ВРЕМЕННАЯ ХУЙНЯ
+        click: (e, node) => {
+          const id = node.data.key;
+          const url = window.PERSON_URL_TEMPLATE.replace("/0?", `/${id}?`);
           window.location.href = url;
         }
       },
@@ -51,10 +50,23 @@
           new go.Binding("text", "fullName")
         ),
 
-        // Строка 1: даты жизни
         $(go.TextBlock,
           {
             row: 1,
+            font: "11px sans-serif",
+            stroke: "#555",
+            maxSize: new go.Size(200, NaN),
+            overflow: go.TextBlock.OverflowEllipsis,
+            visible: false
+          },
+          new go.Binding("text", "maidenLine"),
+          new go.Binding("visible", "maidenLine", v => !!v)
+        ),
+
+        // Строка 1: даты жизни
+        $(go.TextBlock,
+          {
+            row: 2,
             font: "12px sans-serif",
             stroke: "#666",
             maxSize: new go.Size(200, NaN),
@@ -114,26 +126,21 @@
     return y == null ? `u_${x}_none` : `u_${x}_${y}`;
   }
 
-  function formatPartialDate(year, month, day, fallback) {
-  const monthNames = {
-    1: "January", 2: "February", 3: "March", 4: "April",
-    5: "May", 6: "June", 7: "July", 8: "August",
-    9: "September", 10: "October", 11: "November", 12: "December"
-  };
-
-  if (year) {
-    if (month) {
-      const monthName = monthNames[Number(month)] || String(month);
-      if (day) {
-        return `${Number(day)} ${monthName} ${year}`;
+  function formatShortDate(year, month, day, fallback) {
+    if (year) {
+      if (month) {
+        const mm = String(month).padStart(2, "0");
+        if (day) {
+          const dd = String(day).padStart(2, "0");
+          return `${dd}.${mm}.${year}`;
+        }
+        return `${mm}.${year}`;
       }
-      return `${monthName} ${year}`;
+      return String(year);
     }
-    return String(year);
-  }
 
-  return fallback || "";
-}
+    return fallback || "";
+  }
 
   try {
     // Берём данные дерева с сервера
@@ -159,21 +166,31 @@
     // --- Узлы людей для GoJS ---
     const personNodes = persons.map(p => {
       // Имя + фамилия (если пусто — "Person #id")
-      const fullName = (`${p.first_name || ""} ${p.last_name || ""}`).trim() || `Person #${p.id}`;
+      const fullName = (
+        `${p.first_name || ""} ${p.middle_name || ""} ${p.last_name || ""}`
+      ).replace(/\s+/g, " ").trim() || `Person #${p.id}`;
+
+      const maidenLine = p.maiden_name ? `maiden: ${p.maiden_name}` : "";
       
       // Даты: "birth – death" (если есть)
-      const birthDisplay = formatPartialDate(
+      const birthDisplay = formatShortDate(
         p.birth_year, p.birth_month, p.birth_day, p.birth_date
       );
 
-      const deathDisplay = formatPartialDate(
+      const deathDisplay = formatShortDate(
         p.death_year, p.death_month, p.death_day, p.death_date
       );
 
-      const lifeLine = [birthDisplay, deathDisplay].filter(Boolean).join(" – ");
+      const lifeLine = [birthDisplay, deathDisplay].filter(Boolean).join(" - ");
       
       // key обязателен: это id узла
-      return { key: p.id, category: "", fullName, lifeLine };
+      return {
+        key: p.id,
+        category: "",
+        fullName,
+        maidenLine,
+        lifeLine
+      };
     });
 
     // Build parent map: childId -> Set(parents)

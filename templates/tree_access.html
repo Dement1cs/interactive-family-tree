@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Access — Interactive Family Tree{% endblock %}
+
+{% block content %}
+<h2>Manage Access</h2>
+
+<p><strong>Tree:</strong> {{ tree.title }}</p>
+
+{% if error %}
+    <p style="color:red;">{{ error }}</p>
+{% endif %}
+
+<form action="{{ url_for('manage_tree_access', tree_id=tree.id) }}" method="post" style="margin-bottom: 16px;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <label for="email">Invite by email</label><br>
+    <input type="email" id="email" name="email" placeholder="user@example.com" required>
+
+    <label for="role" style="margin-left: 10px;">Role</label>
+    <select id="role" name="role">
+        <option value="editor">Editor</option>
+        <option value="viewer">Viewer</option>
+    </select>
+
+    <button type="submit">Grant access</button>
+</form>
+
+{% if shared_entries and shared_entries|length > 0 %}
+    <ul>
+        {% for entry in shared_entries %}
+            <li>
+                {{ entry.user.email }} ({{ entry.role }})
+                <form action="{{ url_for('remove_tree_access', tree_id=tree.id, access_id=entry.id) }}"
+                      method="post"
+                      style="display:inline;"
+                      onsubmit="return confirm('Remove access for this user?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit">Remove</button>
+                </form>
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>No shared users yet.</p>
+{% endif %}
+
+<p>
+    <a href="{{ url_for('dashboard') }}">Back to dashboard</a>
+</p>
+{% endblock %}

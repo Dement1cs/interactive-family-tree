@@ -30,7 +30,7 @@ from db import(
     )
 from extensions import db, migrate, login_manager, csrf
 
-from models import User, Tree
+from models import User, Tree, TreeAccess
 from flask_login import login_user, logout_user, login_required, current_user
 from forms import RegisterForm, LoginForm
 
@@ -63,14 +63,56 @@ def load_user(user_id):
     return db.session.get(User, int(user_id))
 
 def get_current_user_tree_or_404(tree_id):
+    return require_tree_view_access(tree_id)
+
+#=== Запросить роль для текущего юзера ========================================
+def get_tree_role_for_current_user(tree_id):
     if not tree_id:
         return None
 
-    tree = Tree.query.filter_by(id=tree_id, owner_user_id=current_user.id).first()
+    tree = Tree.query.filter_by(id=tree_id).first()
+    if tree is None:
+        return None
+
+    if tree.owner_user_id == current_user.id:
+        return "owner"
+
+    access = TreeAccess.query.filter_by(
+        tree_id=tree.id,
+        user_id=current_user.id
+    ).first()
+
+    if access:
+        return access.role
+
+    return None
+#===========================================
+
+#==== запросить просмотр ===================
+def require_tree_view_access(tree_id):
+    tree = Tree.query.filter_by(id=tree_id).first()
     if tree is None:
         abort(404)
 
+    role = get_tree_role_for_current_user(tree_id)
+    if role not in {"owner", "editor", "viewer"}:
+        abort(404)
+
     return tree
+#===========================================
+
+#==== запросить едитор ===================
+def require_tree_edit_access(tree_id):
+    tree = Tree.query.filter_by(id=tree_id).first()
+    if tree is None:
+        abort(404)
+
+    role = get_tree_role_for_current_user(tree_id)
+    if role not in {"owner", "editor"}:
+        abort(403)
+
+    return tree
+#===========================================
 
 def to_int_or_none(value):
     value = (value or "").strip()
@@ -98,10 +140,19 @@ def allowed_image_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_IMAGE_EXTENSIONS
 #===========================================
 
+def get_person_in_tree_or_404(person_id, tree_id):
+    person = get_person(person_id)
+    if person is None:
+        abort(404)
+
+    if str(person["tree_id"]) != str(tree_id):
+        abort(404)
+
+    return person
+
 @app.context_processor
 def inject_helpers():
     return dict(format_partial_date=format_partial_date)
-# better looks date end -------------------------
 
 #======== register роут =============================
 @app.route("/register", methods=["GET", "POST"])
@@ -199,7 +250,7 @@ def persons():
 @login_required
 def add_person_route():
     tree_id = request.args.get("tree_id")
-    current_tree = get_current_user_tree_or_404(tree_id)
+    current_tree = require_tree_edit_access(tree_id)
 
     if request.method == "POST":
         first_name = request.form.get("first_name")
@@ -246,20 +297,20 @@ def add_person_route():
 @login_required
 def person_detail(person_id):
     tree_id = request.args.get("tree_id")
+    tree_role = get_tree_role_for_current_user(tree_id)
     current_tree = get_current_user_tree_or_404(tree_id)
+
+    person = get_person_in_tree_or_404(person_id, tree_id)
     photos = get_person_photos(person_id)
-    person = get_person(person_id)
-    if person is None:
-        return "Person not found", 404
+
     parents = get_parents(person_id)
     children = get_children(person_id)
     spouses = get_spouses(person_id)
     siblings = get_siblings(person_id)
     grandparents = get_grandparents(person_id)
-    photos = get_person_photos(person_id)
 
     return render_template(
-        "person_detail.html", 
+        "person_detail.html",
         person=person,
         parents=parents,
         children=children,
@@ -267,8 +318,8 @@ def person_detail(person_id):
         siblings=siblings,
         grandparents=grandparents,
         photos=photos,
-        tree_id=tree_id
-        
+        tree_id=tree_id,
+        tree_role=tree_role
     )
 # ==========================================================
 
@@ -277,11 +328,9 @@ def person_detail(person_id):
 @login_required
 def edit_person(person_id):
     tree_id = request.args.get("tree_id")
-    current_tree = get_current_user_tree_or_404(tree_id)
+    current_tree = require_tree_edit_access(tree_id)
 
-    person = get_person(person_id)
-    if person is None:
-        return "Person is not found", 404
+    person = get_person_in_tree_or_404(person_id, tree_id)
     
     if request.method == "POST":
         first_name = request.form.get("first_name")
@@ -328,12 +377,10 @@ def edit_person(person_id):
 @login_required
 def add_relation(person_id):
     tree_id = request.args.get("tree_id")
-    current_tree = get_current_user_tree_or_404(tree_id)
+    current_tree = require_tree_edit_access(tree_id)
     preset_relation_type = request.args.get("relation_type")
 
-    person = get_person(person_id)
-    if person is None:
-        return "Person not found", 404
+    person = get_person_in_tree_or_404(person_id, tree_id)
 
     people = [p for p in get_all_persons(tree_id) if p["id"] != person_id]
     error = None
@@ -463,7 +510,8 @@ def add_relation(person_id):
 @login_required
 def delete_relation(person_id):
     tree_id = request.args.get("tree_id")
-    current_tree = get_current_user_tree_or_404(tree_id)
+    current_tree = require_tree_edit_access(tree_id)
+    person = get_person_in_tree_or_404(person_id, tree_id)
 
     relative_id = request.form.get("relative_id")
     relation_type = request.form.get("relation_type")
@@ -486,11 +534,9 @@ def delete_relation(person_id):
 @login_required
 def delete_person_route(person_id):
     tree_id = request.args.get("tree_id")
-    current_tree = get_current_user_tree_or_404(tree_id)
+    current_tree = require_tree_edit_access(tree_id)
 
-    person = get_person(person_id)
-    if person is None:
-        return "Person not found", 404
+    person = get_person_in_tree_or_404(person_id, tree_id)
     
     delete_person(person_id)
     return redirect(url_for("persons", tree_id=tree_id))
@@ -501,11 +547,9 @@ def delete_person_route(person_id):
 @login_required
 def upload_person_photo_route(person_id):
     tree_id = request.args.get("tree_id")
-    current_tree = get_current_user_tree_or_404(tree_id)
+    current_tree = require_tree_edit_access(tree_id)
 
-    person = get_person(person_id)
-    if person is None:
-        return "Person not found", 404
+    person = get_person_in_tree_or_404(person_id, tree_id)
 
     file = request.files.get("photo")
     if not file or not file.filename:
@@ -536,11 +580,9 @@ def upload_person_photo_route(person_id):
 @login_required
 def delete_person_photo_route(person_id):
     tree_id = request.args.get("tree_id")
-    current_tree = get_current_user_tree_or_404(tree_id)
+    current_tree = require_tree_edit_access(tree_id)
 
-    person = get_person(person_id)
-    if person is None:
-        return "Person not found", 404
+    person = get_person_in_tree_or_404(person_id, tree_id)
 
     filename = person["photo_filename"]
     if filename:
@@ -551,16 +593,16 @@ def delete_person_photo_route(person_id):
     remove_person_photo(person_id)
 
     return redirect(url_for("person_detail", person_id=person_id, tree_id=tree_id))
+
+
 # ===== uploading photos to the gallery =============================
 @app.route("/persons/<int:person_id>/gallery/upload", methods=["POST"])
 @login_required
 def upload_gallery_photo_route(person_id):
     tree_id = request.args.get("tree_id")
-    current_tree = get_current_user_tree_or_404(tree_id)
+    current_tree = require_tree_edit_access(tree_id)
 
-    person = get_person(person_id)
-    if person is None:
-        return "Person not found", 404
+    person = get_person_in_tree_or_404(person_id, tree_id)
 
     file = request.files.get("gallery_photo")
     if not file or not file.filename:
@@ -584,11 +626,9 @@ def upload_gallery_photo_route(person_id):
 @login_required
 def delete_gallery_photo_route(person_id, photo_id):
     tree_id = request.args.get("tree_id")
-    current_tree = get_current_user_tree_or_404(tree_id)
+    current_tree = require_tree_edit_access(tree_id)
 
-    person = get_person(person_id)
-    if person is None:
-        return "Person not found", 404
+    person = get_person_in_tree_or_404(person_id, tree_id)
 
     photo = get_gallery_photo(photo_id)
     if photo is None or photo["person_id"] != person_id:
@@ -609,17 +649,33 @@ def delete_gallery_photo_route(person_id, photo_id):
 @app.route("/dashboard")
 @login_required
 def dashboard():
-    trees = Tree.query.filter_by(owner_user_id=current_user.id).order_by(Tree.created_at.desc()).all()
+    owned_trees = Tree.query.filter_by(owner_user_id=current_user.id).order_by(Tree.created_at.desc()).all()
 
-    tree_cards = []
-    for t in trees:
-        tree_cards.append({
+    shared_entries = TreeAccess.query.filter_by(user_id=current_user.id).all()
+    shared_trees = [entry.tree for entry in shared_entries]
+
+    owned_tree_cards = []
+    for t in owned_trees:
+        owned_tree_cards.append({
             "id": t.id,
             "title": t.title,
             "person_count": count_persons_in_tree(t.id)
         })
 
-    return render_template("dashboard.html", trees=tree_cards)
+    shared_tree_cards = []
+    for t in shared_trees:
+        shared_tree_cards.append({
+            "id": t.id,
+            "title": t.title,
+            "person_count": count_persons_in_tree(t.id),
+            "owner_email": t.owner.email if t.owner else None
+        })
+
+    return render_template(
+        "dashboard.html",
+        trees=owned_tree_cards,
+        shared_trees=shared_tree_cards
+    )
 # -------------------------------------------------------------------
 
 # ----- создаёт новое дерево (POST) и возвращает на dashboard -------
@@ -674,6 +730,68 @@ def delete_tree_route(tree_id):
 # -------------------------------------------------------------------
 # ===================================================================
 
+# ====== manage access rout =============================================================
+@app.route("/trees/<int:tree_id>/access", methods=["GET", "POST"])
+@login_required
+def manage_tree_access(tree_id):
+    tree = Tree.query.filter_by(id=tree_id, owner_user_id=current_user.id).first()
+    if tree is None:
+        return "Tree not found", 404
+
+    error = None
+
+    if request.method == "POST":
+        email = request.form.get("email", "").strip().lower()
+        role = request.form.get("role", "editor").strip().lower()
+
+        if role not in {"editor", "viewer"}:
+            role = "editor"
+
+        if not email:
+            error = "Email is required."
+        else:
+            user = User.query.filter_by(email=email).first()
+
+            if user is None:
+                error = "User not found."
+            elif user.id == current_user.id:
+                error = "You already own this tree."
+            else:
+                existing = TreeAccess.query.filter_by(tree_id=tree.id, user_id=user.id).first()
+                if existing:
+                    error = "This user already has access."
+                else:
+                    access = TreeAccess(tree_id=tree.id, user_id=user.id, role=role)
+                    db.session.add(access)
+                    db.session.commit()
+                    return redirect(url_for("manage_tree_access", tree_id=tree.id))
+    shared_entries = TreeAccess.query.filter_by(tree_id=tree.id).all()
+
+    return render_template(
+        "tree_access.html",
+        tree=tree,
+        shared_entries=shared_entries,
+        error=error
+    )
+# ===================================================================
+
+# ====== remove access rout =============================================================
+@app.route("/trees/<int:tree_id>/access/<int:access_id>/delete", methods=["POST"])
+@login_required
+def remove_tree_access(tree_id, access_id):
+    tree = Tree.query.filter_by(id=tree_id, owner_user_id=current_user.id).first()
+    if tree is None:
+        return "Tree not found", 404
+
+    access = TreeAccess.query.filter_by(id=access_id, tree_id=tree.id).first()
+    if access is None:
+        return "Access entry not found", 404
+
+    db.session.delete(access)
+    db.session.commit()
+
+    return redirect(url_for("manage_tree_access", tree_id=tree.id))
+# ===================================================================
 
 
 
@@ -687,15 +805,6 @@ def delete_tree_route(tree_id):
 
 # ======API==========================================================
 # ===================================================================
-
-# ======API persons=====================================================
-@app.route("/api/persons")
-@login_required
-def api_persons():
-    conn = get_db()
-    persons = conn.execute("SELECT id, first_name, last_name, birth_date, death_date, notes FROM persons").fetchall()
-    return jsonify([dict(p) for p in persons])
-# =======================================
 
 
 # ==========API Поиск ============
@@ -733,34 +842,23 @@ def api_tree():
 
     current_tree = get_current_user_tree_or_404(tree_id)
 
-    if tree_id:
-        persons = conn.execute("""
-            SELECT id, first_name, last_name,
-                birth_date, death_date,
-                birth_year, birth_month, birth_day,
-                death_year, death_month, death_day,
-                notes, tree_id
-            FROM persons
-            WHERE tree_id = ?
-        """, (tree_id,)).fetchall()
+    persons = conn.execute("""
+        SELECT id, first_name, middle_name, last_name, maiden_name,
+            birth_date, death_date,
+            birth_year, birth_month, birth_day,
+            death_year, death_month, death_day,
+            notes, tree_id
+        FROM persons
+        WHERE tree_id = ?
+    """, (tree_id,)).fetchall()
 
-        relationships = conn.execute("""
-            SELECT r.person_id, r.relative_id, r.relation_type
-            FROM relationships r
-            JOIN persons p1 ON r.person_id = p1.id
-            JOIN persons p2 ON r.relative_id = p2.id
-            WHERE p1.tree_id = ? AND p2.tree_id = ?
-        """, (tree_id, tree_id)).fetchall()
-    else:
-        persons = conn.execute("""
-            SELECT id, first_name, last_name, birth_date, death_date, notes, tree_id
-            FROM persons
-        """).fetchall()
-
-        relationships = conn.execute("""
-            SELECT person_id, relative_id, relation_type
-            FROM relationships
-        """).fetchall()
+    relationships = conn.execute("""
+        SELECT r.person_id, r.relative_id, r.relation_type
+        FROM relationships r
+        JOIN persons p1 ON r.person_id = p1.id
+        JOIN persons p2 ON r.relative_id = p2.id
+        WHERE p1.tree_id = ? AND p2.tree_id = ?
+    """, (tree_id, tree_id)).fetchall()
 
     conn.close()
 

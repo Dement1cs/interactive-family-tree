@@ -34,17 +34,19 @@
 {% endblock %}
 
 {% block content %}
-<div class="person-actions" style="margin-bottom: 10px;">
-    <a href="{{ url_for('edit_person', person_id=person['id'], tree_id=tree_id) }}">Edit</a>
+{% if tree_role in ["owner", "editor"] %}
+    <div class="person-actions" style="margin-bottom: 10px;">
+        <a href="{{ url_for('edit_person', person_id=person['id'], tree_id=tree_id) }}">Edit</a>
 
-    <form action="{{ url_for('delete_person_route', person_id=person['id'], tree_id=tree_id) }}"
-          method="post"
-          style="display:inline;"
-          onsubmit="return confirm('Delete this person?');">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button type="submit">Delete</button>
-    </form>
-</div>
+        <form action="{{ url_for('delete_person_route', person_id=person['id'], tree_id=tree_id) }}"
+            method="post"
+            style="display:inline;"
+            onsubmit="return confirm('Delete this person?');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit">Delete</button>
+        </form>
+    </div>
+{% endif %}
 
 <div class="person-detail">
 
@@ -98,22 +100,26 @@
         <section class="person-section">
             <h3>Profile Photo</h3>
 
-            <form action="{{ url_for('upload_person_photo_route', person_id=person['id'], tree_id=tree_id) }}"
-                method="post"
-                enctype="multipart/form-data"
-                style="margin-bottom: 10px;">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="file" name="photo" accept="image/*" required>
-                <button type="submit">Upload photo</button>
-            </form>
-
-            {% if person["photo_filename"] %}
-                <form action="{{ url_for('delete_person_photo_route', person_id=person['id'], tree_id=tree_id) }}"
+            {% if tree_role in ["owner", "editor"] %}
+                <form action="{{ url_for('upload_person_photo_route', person_id=person['id'], tree_id=tree_id) }}"
                     method="post"
-                    onsubmit="return confirm('Delete this photo?');">
+                    enctype="multipart/form-data"
+                    style="margin-bottom: 10px;">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit">Delete photo</button>
+                    <input type="file" name="photo" accept="image/*" required>
+                    <button type="submit">Upload photo</button>
                 </form>
+
+                {% if person["photo_filename"] %}
+                    <form action="{{ url_for('delete_person_photo_route', person_id=person['id'], tree_id=tree_id) }}"
+                        method="post"
+                        onsubmit="return confirm('Delete this photo?');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit">Delete photo</button>
+                    </form>
+                {% endif %}
+            {% else %}
+                <p class="muted">View only.</p>
             {% endif %}
         </section>
 
@@ -121,10 +127,12 @@
         <section class="person-section">
             <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
                 <h3>Relations</h3>
-                <a href="{{ url_for('add_relation', person_id=person['id'], tree_id=tree_id) }}">Add relation</a>
-                <a href="{{ url_for('add_relation', person_id=person['id'], tree_id=tree_id, relation_type='parent') }}">Add parent</a>
-                <a href="{{ url_for('add_relation', person_id=person['id'], tree_id=tree_id, relation_type='child') }}">Add child</a>
-                <a href="{{ url_for('add_relation', person_id=person['id'], tree_id=tree_id, relation_type='spouse') }}">Add spouse</a>
+                {% if tree_role in ["owner", "editor"] %}
+                    <a href="{{ url_for('add_relation', person_id=person['id'], tree_id=tree_id) }}">Add relation</a>
+                    <a href="{{ url_for('add_relation', person_id=person['id'], tree_id=tree_id, relation_type='parent') }}">Add parent</a>
+                    <a href="{{ url_for('add_relation', person_id=person['id'], tree_id=tree_id, relation_type='child') }}">Add child</a>
+                    <a href="{{ url_for('add_relation', person_id=person['id'], tree_id=tree_id, relation_type='spouse') }}">Add spouse</a>
+                {% endif %}
             </div>
 
             {% if parents and parents|length > 0 %}
@@ -137,14 +145,16 @@
                                 {{ p['first_name'] }} {{ p['last_name'] }}
                             </a>
 
-                            <form action="{{ url_for('delete_relation', person_id=p['id'], tree_id=tree_id) }}"
-                                method="post"
-                                style="display:inline;">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <input type="hidden" name="relative_id" value="{{ person['id'] }}">
-                                <input type="hidden" name="relation_type" value="parent">
-                                <button type="submit">Remove</button>
-                            </form>
+                            {% if tree_role in ["owner", "editor"] %}
+                                <form action="{{ url_for('delete_relation', person_id=p['id'], tree_id=tree_id) }}"
+                                    method="post"
+                                    style="display:inline;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="relative_id" value="{{ person['id'] }}">
+                                    <input type="hidden" name="relation_type" value="parent">
+                                    <button type="submit">Remove</button>
+                                </form>
+                            {% endif %}
                         </li>
                     {% endfor %}
                 </ul>
@@ -171,14 +181,16 @@
                             {{ c['first_name'] }} {{ c['last_name'] }}
                         </a>
 
-                        <form action="{{ url_for('delete_relation', person_id=person['id'], tree_id=tree_id) }}"
-                            method="post"
-                            style="display:inline;">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <input type="hidden" name="relative_id" value="{{ c['id'] }}">
-                            <input type="hidden" name="relation_type" value="parent">
-                            <button type="submit">Remove</button>
-                        </form>
+                        {% if tree_role in ["owner", "editor"] %}
+                            <form action="{{ url_for('delete_relation', person_id=person['id'], tree_id=tree_id) }}"
+                                method="post"
+                                style="display:inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="relative_id" value="{{ c['id'] }}">
+                                <input type="hidden" name="relation_type" value="parent">
+                                <button type="submit">Remove</button>
+                            </form>
+                        {% endif %}
                     </li>
                     {% endfor %}
                 </ul>
@@ -195,14 +207,16 @@
                             {{ s["first_name"] }} {{ s["last_name"] or "" }}
                         </a>
 
-                        <form action="{{ url_for('delete_relation', person_id=person['id'], tree_id=tree_id) }}"
-                            method="post"
-                            style="display:inline;">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <input type="hidden" name="relative_id" value="{{ s['id'] }}">
-                            <input type="hidden" name="relation_type" value="spouse">
-                            <button type="submit">Remove</button>
-                        </form>
+                        {% if tree_role in ["owner", "editor"] %}
+                            <form action="{{ url_for('delete_relation', person_id=person['id'], tree_id=tree_id) }}"
+                                method="post"
+                                style="display:inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="relative_id" value="{{ s['id'] }}">
+                                <input type="hidden" name="relation_type" value="spouse">
+                                <button type="submit">Remove</button>
+                            </form>
+                        {% endif %}
                     </li>
                 {% endfor %}
                 </ul>
@@ -241,14 +255,16 @@
         <section class="person-section">
         <h3>Photo Gallery</h3>
 
-        <form action="{{ url_for('upload_gallery_photo_route', person_id=person['id'], tree_id=tree_id) }}"
-            method="post"
-            enctype="multipart/form-data"
-            style="margin-bottom: 12px;">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <input type="file" name="gallery_photo" accept="image/*" required>
-            <button type="submit">Upload to gallery</button>
-        </form>
+        {% if tree_role in ["owner", "editor"] %}
+            <form action="{{ url_for('upload_gallery_photo_route', person_id=person['id'], tree_id=tree_id) }}"
+                method="post"
+                enctype="multipart/form-data"
+                style="margin-bottom: 12px;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="file" name="gallery_photo" accept="image/*" required>
+                <button type="submit">Upload to gallery</button>
+            </form>
+        {% endif %}
 
         {% if photos and photos|length > 0 %}
             <div style="display:flex; gap:12px; flex-wrap:wrap;">
@@ -262,12 +278,14 @@
                             style="width:140px; height:140px; object-fit:cover; display:block; margin-bottom:8px; cursor:pointer;"
                         >
 
-                        <form action="{{ url_for('delete_gallery_photo_route', person_id=person['id'], photo_id=photo['id'], tree_id=tree_id) }}"
-                            method="post"
-                            onsubmit="return confirm('Delete this gallery photo?');">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit">Delete</button>
-                        </form>
+                        {% if tree_role in ["owner", "editor"] %}
+                            <form action="{{ url_for('delete_gallery_photo_route', person_id=person['id'], photo_id=photo['id'], tree_id=tree_id) }}"
+                                method="post"
+                                onsubmit="return confirm('Delete this gallery photo?');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit">Delete</button>
+                            </form>
+                        {% endif %}
                     </div>
                 {% endfor %}
             </div>

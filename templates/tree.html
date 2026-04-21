@@ -19,7 +19,7 @@
 
 <script>
   // даст строку вида "/persons/0"
-  window.PERSON_URL_TEMPLATE = "{{ url_for('person_detail', person_id=0) }}";
+  window.PERSON_URL_TEMPLATE = "{{ url_for('person_detail', person_id=0, tree_id=tree_id) }}";
 </script>
 
 <script src="{{ url_for('static', filename='js/tree.js') }}"></script>
