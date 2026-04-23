@@ -626,18 +626,27 @@ h1, h2, h3, h4 {
     margin-bottom: 12px;
 }
 
-.relation-block {
-    margin-top: 18px;
+.relation-group {
+    padding: 16px 0;
+    border-top: 1px solid var(--border-soft);
 }
 
-.relation-block h4 {
-    margin-bottom: 8px;
+.relation-group:first-of-type {
+    border-top: none;
+    padding-top: 8px;
+}
+
+.relation-group h4 {
+    margin: 0 0 10px 0;
 }
 
 .relation-list {
     list-style: none;
     padding-left: 0;
     margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
 .relation-list li {
@@ -646,8 +655,7 @@ h1, h2, h3, h4 {
     gap: 12px;
     flex-wrap: wrap;
     align-items: center;
-    padding: 10px 0;
-    border-bottom: 1px solid var(--border-soft);
+    padding: 0;
 }
 
 .relation-list li:last-child {

@@ -133,7 +133,7 @@
         </div>
 
         {% if parents and parents|length > 0 %}
-            <div class="relation-block">
+            <div class="relation-group">
                 <h4>Parents</h4>
                 <ul class="relation-list">
                     {% for p in parents %}
@@ -147,8 +147,8 @@
 
                             {% if tree_role in ["owner", "editor"] %}
                                 <form action="{{ url_for('delete_relation', person_id=p['id'], tree_id=tree_id) }}"
-                                      method="post"
-                                      class="inline-form">
+                                    method="post"
+                                    class="inline-form">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <input type="hidden" name="relative_id" value="{{ person['id'] }}">
                                     <input type="hidden" name="relation_type" value="parent">
@@ -162,7 +162,7 @@
         {% endif %}
 
         {% if siblings and siblings|length > 0 %}
-            <div class="relation-block">
+            <div class="relation-group">
                 <h4>Siblings</h4>
                 <ul class="relation-list">
                     {% for s in siblings %}
@@ -180,7 +180,7 @@
         {% endif %}
 
         {% if children and children|length > 0 %}
-            <div class="relation-block">
+            <div class="relation-group">
                 <h4>Children</h4>
                 <ul class="relation-list">
                     {% for c in children %}
@@ -194,8 +194,8 @@
 
                             {% if tree_role in ["owner", "editor"] %}
                                 <form action="{{ url_for('delete_relation', person_id=person['id'], tree_id=tree_id) }}"
-                                      method="post"
-                                      class="inline-form">
+                                    method="post"
+                                    class="inline-form">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <input type="hidden" name="relative_id" value="{{ c['id'] }}">
                                     <input type="hidden" name="relation_type" value="parent">
@@ -209,7 +209,7 @@
         {% endif %}
 
         {% if spouses and spouses|length > 0 %}
-            <div class="relation-block">
+            <div class="relation-group">
                 <h4>Spouse</h4>
                 <ul class="relation-list">
                     {% for s in spouses %}
@@ -222,8 +222,8 @@
 
                             {% if tree_role in ["owner", "editor"] %}
                                 <form action="{{ url_for('delete_relation', person_id=person['id'], tree_id=tree_id) }}"
-                                      method="post"
-                                      class="inline-form">
+                                    method="post"
+                                    class="inline-form">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <input type="hidden" name="relative_id" value="{{ s['id'] }}">
                                     <input type="hidden" name="relation_type" value="spouse">
@@ -237,7 +237,7 @@
         {% endif %}
 
         {% if grandparents and grandparents|length > 0 %}
-            <div class="relation-block">
+            <div class="relation-group">
                 <h4>Grandparents</h4>
                 <ul class="relation-list">
                     {% for g in grandparents %}
