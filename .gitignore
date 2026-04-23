@@ -19,3 +19,6 @@ instance/
 .DS_Store
 .vscode/
 .idea/
+
+static/uploads/*
+!static/uploads/.gitkeep
