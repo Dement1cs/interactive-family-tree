@@ -177,7 +177,7 @@ def register():
         db.session.commit()
 
         login_user(user)
-        return redirect(url_for("index"))
+        return redirect(url_for("dashboard"))
 
     return render_template("register.html", form=form)
 #========================================================
@@ -198,8 +198,8 @@ def login():
             return render_template("login.html", form=form)
 
         login_user(user, remember=form.remember.data)
-        next_url = request.args.get("next") # вернуть от куда пришел
-        return redirect(next_url or url_for("index"))
+        next_url = request.args.get("next")
+        return redirect(next_url or url_for("dashboard"))
 
     return render_template("login.html", form=form)
 #========================================================

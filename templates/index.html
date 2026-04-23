@@ -1,6 +1,50 @@
 {% extends "base.html" %}
 
+{% block title %}Interactive Family Tree{% endblock %}
+
 {% block content %}
-<h2>Welcome!</h2>
-<p>This is the Interactive Family Tree project.</p>
+<div class="hero-section">
+    <div class="hero-card">
+        <p class="hero-eyebrow">Family history made simple</p>
+        <h1 class="hero-title">Build, manage, and share interactive family trees</h1>
+        <p class="hero-text">
+            Create family trees, connect relatives, upload profile photos and gallery images,
+            and share access with other users as editors or viewers.
+        </p>
+
+        <div class="hero-actions">
+            {% if current_user.is_authenticated %}
+                <a class="btn-link" href="{{ url_for('dashboard') }}">Open dashboard</a>
+            {% else %}
+                <a class="btn-link" href="{{ url_for('register') }}">Create account</a>
+                <a class="btn-link" href="{{ url_for('login') }}">Login</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="page-section">
+    <div class="feature-grid">
+        <div class="feature-card">
+            <h3>Create detailed profiles</h3>
+            <p class="muted">
+                Add names, maiden names, dates, notes, profile photos, and gallery images for each person.
+            </p>
+        </div>
+
+        <div class="feature-card">
+            <h3>Visualize relationships</h3>
+            <p class="muted">
+                View family members in an interactive tree and open their profiles directly from the diagram.
+            </p>
+        </div>
+
+        <div class="feature-card">
+            <h3>Share access safely</h3>
+            <p class="muted">
+                Invite other users as editors or viewers and manage permissions for each tree.
+            </p>
+        </div>
+    </div>
+</div>
 {% endblock %}

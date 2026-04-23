@@ -1,64 +1,109 @@
 {% extends "base.html" %}
 
-{% block title %}Edit {{ person["first_name"] }} — Interactive Family Tree{% endblock %}
+{% block title %}Edit Person — Interactive Family Tree{% endblock %}
 
 {% block content %}
-<h2>Edit Person</h2>
-
-<form action="{{ url_for('edit_person', person_id=person['id'], tree_id=tree_id) }}" method="post" class="person-form">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <div>
-        <label for="first_name">First name *</label><br>
-        <input type="text" id="first_name" name="first_name" required
-               value="{{ person['first_name'] }}">
+<div class="page-section">
+    <div class="person-topbar">
+        <div class="person-topbar-left">
+            <a class="btn-link" href="{{ url_for('person_detail', person_id=person['id'], tree_id=tree_id) }}">Back to profile</a>
+            <a class="btn-link" href="{{ url_for('persons', tree_id=tree_id) }}">Back to people</a>
+        </div>
     </div>
+</div>
 
-    <div>
-        <label for="middle_name">Middle name / Patronymic</label><br>
-        <input type="text" id="middle_name" name="middle_name" value="{{ person['middle_name'] or '' }}">
-    </div>
+<div class="form-card">
+    <h2>Edit person</h2>
 
-    <div>
-        <label for="last_name">Last name</label><br>
-        <input type="text" id="last_name" name="last_name"
-               value="{{ person['last_name'] or '' }}">
-    </div>
+    <form action="{{ url_for('edit_person', person_id=person['id'], tree_id=tree_id) }}" method="post" class="stack-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-    <div>
-        <label for="maiden_name">Maiden name</label><br>
-        <input type="text" id="maiden_name" name="maiden_name" value="{{ person['maiden_name'] or '' }}">
-    </div>
+        <div class="form-section">
+            <h3>Basic information</h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="first_name">First name *</label>
+                    <input type="text" id="first_name" name="first_name" required value="{{ person['first_name'] }}">
+                </div>
 
-    <div>
-        <label>Birth date</label><br>
-        <input type="number" name="birth_day" placeholder="Day" min="1" max="31" value="{{ person['birth_day'] or '' }}" style="width: 80px;">
-        <input type="number" name="birth_month" placeholder="Month" min="1" max="12" value="{{ person['birth_month'] or '' }}" style="width: 80px;">
-        <input type="number" name="birth_year" placeholder="Year" min="1" max="9999" value="{{ person['birth_year'] or '' }}" style="width: 100px;">
-    </div>
+                <div class="form-group">
+                    <label for="middle_name">Middle name / Patronymic</label>
+                    <input type="text" id="middle_name" name="middle_name" value="{{ person['middle_name'] or '' }}">
+                </div>
 
-    <div>
-        <label>Death date</label><br>
-        <input type="number" name="death_day" placeholder="Day" min="1" max="31" value="{{ person['death_day'] or '' }}" style="width: 80px;">
-        <input type="number" name="death_month" placeholder="Month" min="1" max="12" value="{{ person['death_month'] or '' }}" style="width: 80px;">
-        <input type="number" name="death_year" placeholder="Year" min="1" max="9999" value="{{ person['death_year'] or '' }}" style="width: 100px;">
-    </div>
+                <div class="form-group">
+                    <label for="last_name">Last name</label>
+                    <input type="text" id="last_name" name="last_name" value="{{ person['last_name'] or '' }}">
+                </div>
 
-    <div>
-        <label for="gender">Gender</label><br>
-        <select name="gender" id="gender">
-            <option value="" {{ (person["gender"] or "") == "" and "selected" or "" }}>Unknown</option>
-            <option value="male" {{ (person["gender"] or "") == "male" and "selected" or "" }}>Male</option>
-            <option value="female" {{ (person["gender"] or "") == "female" and "selected" or "" }}>Female</option>
-        </select>
-    </div>
+                <div class="form-group">
+                    <label for="maiden_name">Maiden name</label>
+                    <input type="text" id="maiden_name" name="maiden_name" value="{{ person['maiden_name'] or '' }}">
+                </div>
 
-    <div>
-        <label for="notes">Notes</label><br>
-        <textarea id="notes" name="notes" rows="3">{{ person['notes'] or '' }}</textarea>
-    </div>
+                <div class="form-group">
+                    <label for="gender">Gender</label>
+                    <select id="gender" name="gender">
+                        <option value="" {% if not person['gender'] %}selected{% endif %}>-- choose --</option>
+                        <option value="male" {% if person['gender'] == 'male' %}selected{% endif %}>Male</option>
+                        <option value="female" {% if person['gender'] == 'female' %}selected{% endif %}>Female</option>
+                    </select>
+                </div>
+            </div>
+        </div>
 
-    <button type="submit">Save changes</button>
-</form>
+        <div class="form-section">
+            <h3>Birth date</h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="birth_day">Day</label>
+                    <input type="number" id="birth_day" name="birth_day" min="1" max="31" value="{{ person['birth_day'] or '' }}">
+                </div>
 
-<p><a href="{{ url_for('person_detail', person_id=person['id'], tree_id=tree_id) }}">Back to profile</a></p>
+                <div class="form-group">
+                    <label for="birth_month">Month</label>
+                    <input type="number" id="birth_month" name="birth_month" min="1" max="12" value="{{ person['birth_month'] or '' }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="birth_year">Year</label>
+                    <input type="number" id="birth_year" name="birth_year" value="{{ person['birth_year'] or '' }}">
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h3>Death date</h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="death_day">Day</label>
+                    <input type="number" id="death_day" name="death_day" min="1" max="31" value="{{ person['death_day'] or '' }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="death_month">Month</label>
+                    <input type="number" id="death_month" name="death_month" min="1" max="12" value="{{ person['death_month'] or '' }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="death_year">Year</label>
+                    <input type="number" id="death_year" name="death_year" value="{{ person['death_year'] or '' }}">
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h3>Additional information</h3>
+            <div class="form-group">
+                <label for="notes">Description / Notes</label>
+                <textarea id="notes" name="notes" rows="5">{{ person['notes'] or '' }}</textarea>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn">Save changes</button>
+            <a class="btn-link" href="{{ url_for('person_detail', person_id=person['id'], tree_id=tree_id) }}">Cancel</a>
+        </div>
+    </form>
+</div>
 {% endblock %}

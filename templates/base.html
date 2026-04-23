@@ -1,47 +1,46 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Interactive Family Tree{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-
 <body>
-    <header class="main-header">
-        <div class="container">
-            <h1>Interactive Family Tree</h1>
-            <nav>
-                <a href="{{ url_for('index') }}">Home</a>
-                <a href="{{ url_for('tree') }}">Family Tree</a>
-                <a href="{{ url_for('persons') }}">Persons</a>
-                {% if current_user.is_authenticated %}
-                <form action="{{ url_for('logout') }}" method="post" style="display:inline; margin-left:10px;">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit">Logout</button>
-                </form>
-                {% else %}
-                <a href="{{ url_for('login') }}">Login</a>
-                <a href="{{ url_for('register') }}">Register</a>
-                {% endif %}
+    <header class="site-header">
+        <div class="site-container site-header-inner">
+            <div class="site-brand">
+                <a href="{{ url_for('index') }}" class="site-brand-link">Interactive Family Tree</a>
+            </div>
+
+            <nav class="site-nav">
+                <a class="site-nav-link" href="{{ url_for('index') }}">Home</a>
 
                 {% if current_user.is_authenticated %}
-                    <a href="{{ url_for('dashboard') }}">Dashboard</a>
+                    <a class="site-nav-link" href="{{ url_for('dashboard') }}">Dashboard</a>
+
+                    <form action="{{ url_for('logout') }}" method="post" class="inline-form">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn">Logout</button>
+                    </form>
+                {% else %}
+                    <a class="site-nav-link" href="{{ url_for('login') }}">Login</a>
+                    <a class="site-nav-link" href="{{ url_for('register') }}">Register</a>
                 {% endif %}
             </nav>
         </div>
     </header>
 
-    <main class="main-content container">
-        <div class="container">
+    <main class="site-main">
+        <div class="site-container">
             {% block content %}{% endblock %}
         </div>
     </main>
 
-    <footer class="main-footer">
-        <div class="container">
+    <footer class="site-footer">
+        <div class="site-container">
             <p>© 2025 Interactive Family Tree</p>
         </div>
     </footer>
-
 </body>
 </html>

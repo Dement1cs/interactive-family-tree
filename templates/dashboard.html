@@ -3,65 +3,78 @@
 {% block title %}Dashboard — Interactive Family Tree{% endblock %}
 
 {% block content %}
-<h2>Your account</h2>
+<div class="page-section">
+    <h2>Your account</h2>
+</div>
 
-<h3>Your trees</h3>
+<div class="page-section">
+    <h3>Your trees</h3>
 
-<form action="{{ url_for('create_tree') }}" method="post" style="margin-bottom: 16px;">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <input type="text" name="title" placeholder="Tree name (optional)" />
-    <button type="submit">Create tree</button>
-</form>
+    <form action="{{ url_for('create_tree') }}" method="post" class="inline-form tree-create-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="text" name="title" placeholder="Enter tree name" />
+        <button type="submit" class="btn">Create tree</button>
+    </form>
 
-{% if trees and trees|length > 0 %}
-    <ul>
-        {% for t in trees %}
-            <li>
-                <strong>{{ t.title }}</strong>
-                <span class="muted">(#{{ t.id }})</span>
-                <span class="muted">
-                    — {{ t.person_count }} {{ "person" if t.person_count == 1 else "people" }}
-                </span>
+    {% if trees and trees|length > 0 %}
+        <div class="tree-grid">
+            {% for t in trees %}
+                <div class="tree-card">
+                    <div class="tree-card-body">
+                        <h4 class="tree-card-title">{{ t.title }}</h4>
+                        <p class="muted">
+                            {{ t.person_count }} {{ "person" if t.person_count == 1 else "people" }}
+                        </p>
+                    </div>
 
-                <a href="{{ url_for('tree', tree_id=t.id) }}">Open</a>
-                <a href="{{ url_for('persons', tree_id=t.id) }}">People</a>
-                <a href="{{ url_for('edit_tree', tree_id=t.id) }}">Rename</a>
-                <a href="{{ url_for('manage_tree_access', tree_id=t.id) }}">Manage access</a>
+                    <div class="tree-card-actions">
+                        <a class="btn-link" href="{{ url_for('tree', tree_id=t.id) }}">Open</a>
+                        <a class="btn-link" href="{{ url_for('persons', tree_id=t.id) }}">People</a>
+                        <a class="btn-link" href="{{ url_for('edit_tree', tree_id=t.id) }}">Rename</a>
+                        <a class="btn-link" href="{{ url_for('manage_tree_access', tree_id=t.id) }}">Manage access</a>
 
-                <form action="{{ url_for('delete_tree_route', tree_id=t.id) }}"
-                    method="post"
-                    style="display:inline;"
-                    onsubmit="return confirm('Delete this tree and all people inside it?');">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit">Delete</button>
-                </form>
-            </li>
-        {% endfor %}
-    </ul>
-{% else %}
-    <p class="muted">You don't have any trees yet. Create one above.</p>
-{% endif %}
+                        <form action="{{ url_for('delete_tree_route', tree_id=t.id) }}"
+                              method="post"
+                              class="inline-form"
+                              onsubmit="return confirm('Delete this tree and all people inside it?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn-danger">Delete</button>
+                        </form>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="muted">You don't have any trees yet. Create one above.</p>
+    {% endif %}
+</div>
 
-<h3>Shared with me</h3>
+<div class="page-section">
+    <h3>Shared with me</h3>
 
-{% if shared_trees and shared_trees|length > 0 %}
-    <ul>
-        {% for t in shared_trees %}
-        <li>
-            <strong>{{ t.title }}</strong>
-            <span class="muted">
-                — {{ t.person_count }} {{ "person" if t.person_count == 1 else "people" }}
-            </span>
-            {% if t.owner_email %}
-                <span class="muted">— owner: {{ t.owner_email }}</span>
-            {% endif %}
-            <a href="{{ url_for('tree', tree_id=t.id) }}">Open</a>
-            <a href="{{ url_for('persons', tree_id=t.id) }}">People</a>
-        </li>
-        {% endfor %}
-    </ul>
-{% else %}
-    <p class="muted">No trees have been shared with you yet.</p>
-{% endif %}
+    {% if shared_trees and shared_trees|length > 0 %}
+        <div class="tree-grid">
+            {% for t in shared_trees %}
+                <div class="tree-card">
+                    <div class="tree-card-body">
+                        <h4 class="tree-card-title">{{ t.title }}</h4>
+                        <p class="muted">
+                            {{ t.person_count }} {{ "person" if t.person_count == 1 else "people" }}
+                        </p>
+                        {% if t.owner_email %}
+                            <p class="muted">Owner: {{ t.owner_email }}</p>
+                        {% endif %}
+                    </div>
 
+                    <div class="tree-card-actions">
+                        <a class="btn-link" href="{{ url_for('tree', tree_id=t.id) }}">Open</a>
+                        <a class="btn-link" href="{{ url_for('persons', tree_id=t.id) }}">People</a>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="muted">No trees have been shared with you yet.</p>
+    {% endif %}
+</div>
 {% endblock %}

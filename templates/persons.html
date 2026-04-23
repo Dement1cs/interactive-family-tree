@@ -1,38 +1,68 @@
 {% extends "base.html" %}
 
-{% block title %}Persons — Interactive Family Tree{% endblock %}
+{% block title %}People — Interactive Family Tree{% endblock %}
 
 {% block content %}
-<h2>
-    Persons
-    {% if current_tree %}
-        — {{ current_tree.title }}
-    {% endif %}
-</h2>
-<p>
-    {% if tree_id %}
-        <a href="{{ url_for('tree', tree_id=tree_id) }}">View tree</a>
-    {% endif %}
-</p>
-<p>
-    <a href="{{ url_for('add_person_route', tree_id=tree_id) }}">Add new person</a>
-</p>
+<div class="page-section">
+    <div class="person-topbar">
+        <div class="person-topbar-left">
+            <a class="btn-link" href="{{ url_for('dashboard') }}">Back to dashboard</a>
+            {% if tree_id %}
+                <a class="btn-link" href="{{ url_for('tree', tree_id=tree_id) }}">Back to tree</a>
+            {% endif %}
+        </div>
 
-{% if people and people|length > 0 %}
-    <ul>
-        {% for p in people %}
-            <li>
-                <a href="{{ url_for('person_detail', person_id=p['id'], tree_id=tree_id) }}">
-                    {{ p["first_name"] }} {{ p["last_name"] or "" }}
-                </a>
-                {% if p["birth_date"] %}
-                    (born {{ p["birth_date"] }})
-                {% endif %}
-            </li>
-        {% endfor %}
-    </ul>
-{% else %}
-    <p>No persons yet. Database is empty.</p>
-{% endif %}
+        <div class="person-topbar-right">
+            <a class="btn-link" href="{{ url_for('add_person_route', tree_id=tree_id) }}">Add new person</a>
+        </div>
+    </div>
+</div>
 
+<div class="page-section">
+    <div class="tree-page-card">
+        <h2 class="tree-page-title">
+            People
+            {% if current_tree %}
+                — {{ current_tree.title }}
+            {% endif %}
+        </h2>
+
+        {% if people and people|length > 0 %}
+            <div class="people-list">
+                {% for p in people %}
+                    {% set birth_display = format_partial_date(p["birth_year"], p["birth_month"], p["birth_day"], p["birth_date"]) %}
+                    {% set death_display = format_partial_date(p["death_year"], p["death_month"], p["death_day"], p["death_date"]) %}
+
+                    <div class="people-list-item">
+                        <div class="people-list-main">
+                            <a class="people-name-link" href="{{ url_for('person_detail', person_id=p['id'], tree_id=tree_id) }}">
+                                {{ p["first_name"] }}
+                                {% if p["middle_name"] %} {{ p["middle_name"] }}{% endif %}
+                                {% if p["last_name"] %} {{ p["last_name"] }}{% endif %}
+                            </a>
+
+                            {% if birth_display or death_display %}
+                                <div class="people-meta muted">
+                                    {% if birth_display and death_display %}
+                                        <span>{{ birth_display }} — {{ death_display }}</span>
+                                    {% elif birth_display %}
+                                        <span>Born: {{ birth_display }}</span>
+                                    {% elif death_display %}
+                                        <span>Died: {{ death_display }}</span>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="people-list-actions">
+                            <a class="btn-link" href="{{ url_for('person_detail', person_id=p['id'], tree_id=tree_id) }}">Open profile</a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="muted">No persons yet in this tree.</p>
+        {% endif %}
+    </div>
+</div>
 {% endblock %}

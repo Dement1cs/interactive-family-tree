@@ -3,94 +3,102 @@
 {% block title %}Manage Access — Interactive Family Tree{% endblock %}
 
 {% block content %}
-<h2>Manage Access</h2>
+<div class="page-section">
+    <h2>Manage Access</h2>
+    <p class="muted">
+        Tree: <strong>{{ tree.title }}</strong>
+    </p>
+    <p class="muted">
+        Editors can add and edit people, relations, and photos.<br>
+        Viewers can only open and view the tree.
+    </p>
+</div>
 
-<p><strong>Tree:</strong> {{ tree.title }}</p>
+<div class="page-section">
+    <div class="tree-card">
+        <div class="tree-card-body">
+            <h4 class="tree-card-title">Grant access</h4>
 
-<p class="muted">
-    Editors can add and edit people, relations, and photos.<br>
-    Viewers can only open and view the tree.
-</p>
+            {% if error %}
+                <p class="error-text">{{ error }}</p>
+            {% endif %}
 
-{% if error %}
-    <p style="color:red;">{{ error }}</p>
-{% endif %}
+            <form action="{{ url_for('manage_tree_access', tree_id=tree.id) }}"
+                  method="post"
+                  class="access-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-<section class="person-section" style="margin-bottom: 20px;">
-    <h3>Grant access</h3>
+                <div class="form-group">
+                    <label for="email">User email</label><br>
+                    <input type="email" id="email" name="email" placeholder="user@example.com" required>
+                </div>
 
-    <form action="{{ url_for('manage_tree_access', tree_id=tree.id) }}" method="post" style="display:flex; gap:10px; flex-wrap:wrap; align-items:end;">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="form-group">
+                    <label for="role">Role</label><br>
+                    <select id="role" name="role">
+                        <option value="editor">Editor</option>
+                        <option value="viewer">Viewer</option>
+                    </select>
+                </div>
 
-        <div>
-            <label for="email">User email</label><br>
-            <input type="email" id="email" name="email" placeholder="user@example.com" required>
+                <div class="form-group">
+                    <button type="submit" class="btn">Grant access</button>
+                </div>
+            </form>
         </div>
+    </div>
+</div>
 
-        <div>
-            <label for="role">Role</label><br>
-            <select id="role" name="role">
-                <option value="editor">Editor</option>
-                <option value="viewer">Viewer</option>
-            </select>
-        </div>
-
-        <div>
-            <button type="submit">Grant access</button>
-        </div>
-    </form>
-</section>
-
-<section class="person-section">
+<div class="page-section">
     <h3>Shared users</h3>
 
     {% if shared_entries and shared_entries|length > 0 %}
-        <ul style="list-style:none; padding-left:0;">
+        <div class="tree-grid">
             {% for entry in shared_entries %}
-                <li style="border:1px solid #ddd; border-radius:8px; padding:12px; margin-bottom:10px;">
-                    <div style="margin-bottom:8px;">
-                        <strong>{{ entry.user.email }}</strong><br>
-                        <span class="muted">
+                <div class="tree-card">
+                    <div class="tree-card-body">
+                        <h4 class="tree-card-title">{{ entry.user.email }}</h4>
+                        <p class="muted">
                             Role:
                             {% if entry.role == "editor" %}
                                 Editor — can edit
                             {% else %}
                                 Viewer — view only
                             {% endif %}
-                        </span>
+                        </p>
                     </div>
 
-                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <div class="tree-card-actions">
                         <form action="{{ url_for('update_tree_access_role', tree_id=tree.id, access_id=entry.id) }}"
                               method="post"
-                              style="display:inline;">
+                              class="inline-form">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             {% if entry.role == "editor" %}
                                 <input type="hidden" name="role" value="viewer">
-                                <button type="submit">Change to viewer</button>
+                                <button type="submit" class="btn">Change to viewer</button>
                             {% else %}
                                 <input type="hidden" name="role" value="editor">
-                                <button type="submit">Change to editor</button>
+                                <button type="submit" class="btn">Change to editor</button>
                             {% endif %}
                         </form>
 
                         <form action="{{ url_for('remove_tree_access', tree_id=tree.id, access_id=entry.id) }}"
                               method="post"
-                              style="display:inline;"
+                              class="inline-form"
                               onsubmit="return confirm('Remove access for this user?');">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit">Remove access</button>
+                            <button type="submit" class="btn-danger">Remove access</button>
                         </form>
                     </div>
-                </li>
+                </div>
             {% endfor %}
-        </ul>
+        </div>
     {% else %}
         <p class="muted">No shared users yet.</p>
     {% endif %}
-</section>
+</div>
 
 <p>
-    <a href="{{ url_for('dashboard') }}">Back to dashboard</a>
+    <a class="btn-link" href="{{ url_for('dashboard') }}">Back to dashboard</a>
 </p>
 {% endblock %}

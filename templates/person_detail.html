@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 
-<!-- разделение на муж и жен -->
 {% macro role_label(kind, gender) -%}
     {%- set g = (gender or '')|lower -%}
     {%- if kind == 'parent' -%}
@@ -16,274 +15,297 @@
     {%- endif -%}
 {%- endmacro %}
 
-<!-- связи видемы и нет -->
-<!--{% set has_any =
-    (parents and parents|length>0) or
-    (siblings and siblings|length>0) or
-    (children and children|length>0) or
-    (spouses and spouses|length>0) or
-    (grandparents and grandparents|length>0)
-%}
-
-{% if not has_any %}
-<p class="muted">No relations linked yet.</p>
-{% endif %}-->
-
 {% block title %}
     {{ person["first_name"] }} {{ person["last_name"] or "" }} — Profile
 {% endblock %}
 
 {% block content %}
-{% if tree_role in ["owner", "editor"] %}
-    <div class="person-actions" style="margin-bottom: 10px;">
-        <a href="{{ url_for('edit_person', person_id=person['id'], tree_id=tree_id) }}">Edit</a>
+<div class="page-section">
+    <div class="person-topbar">
+        <div class="person-topbar-left">
+            <a class="btn-link" href="{{ url_for('tree', tree_id=tree_id) }}">Back to tree</a>
+            <a class="btn-link" href="{{ url_for('persons', tree_id=tree_id) }}">Back to people</a>
+        </div>
 
-        <form action="{{ url_for('delete_person_route', person_id=person['id'], tree_id=tree_id) }}"
-            method="post"
-            style="display:inline;"
-            onsubmit="return confirm('Delete this person?');">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit">Delete</button>
-        </form>
+        {% if tree_role in ["owner", "editor"] %}
+            <div class="person-topbar-right">
+                <a class="btn-link" href="{{ url_for('edit_person', person_id=person['id'], tree_id=tree_id) }}">Edit</a>
+
+                <form action="{{ url_for('delete_person_route', person_id=person['id'], tree_id=tree_id) }}"
+                      method="post"
+                      class="inline-form"
+                      onsubmit="return confirm('Delete this person?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn-danger">Delete</button>
+                </form>
+            </div>
+        {% endif %}
     </div>
-{% endif %}
+</div>
 
-<div class="person-detail">
-
-    <div class="person-header">
-        <div class="person-avatar">
+<div class="person-full-card">
+    <div class="person-full-header">
+        <div class="person-full-photo">
             {% if person["photo_filename"] %}
                 <img
                     src="{{ url_for('static', filename='uploads/' ~ person['photo_filename']) }}"
                     alt="Photo of {{ person['first_name'] }}"
-                    style="width:140px; height:140px; object-fit:cover; border-radius:12px; border:1px solid #ccc;"
+                    class="profile-photo-img"
                 >
             {% else %}
-                <span class="avatar-initials">
+                <div class="profile-photo-placeholder">
                     {{ person["first_name"][0] }}{% if person["last_name"] %}{{ person["last_name"][0] }}{% endif %}
-                </span>
+                </div>
+            {% endif %}
+
+            {% if tree_role in ["owner", "editor"] %}
+                <div class="profile-photo-actions">
+                    <form action="{{ url_for('upload_person_photo_route', person_id=person['id'], tree_id=tree_id) }}"
+                        method="post"
+                        enctype="multipart/form-data"
+                        class="upload-form">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                        <div class="custom-file-upload">
+                            <label for="photo" class="btn">Choose photo</label>
+                            <span id="photo-file-name" class="file-name">No file selected</span>
+                            <input type="file" id="photo" name="photo" accept="image/*" required hidden>
+                        </div>
+
+                        <button type="submit" class="btn">Upload photo</button>
+                    </form>
+
+                    {% if person["photo_filename"] %}
+                        <form action="{{ url_for('delete_person_photo_route', person_id=person['id'], tree_id=tree_id) }}"
+                              method="post"
+                              class="inline-form"
+                              onsubmit="return confirm('Delete this photo?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn-danger">Delete photo</button>
+                        </form>
+                    {% endif %}
+                </div>
             {% endif %}
         </div>
 
-        <div class="person-main-info">
-            <h2>
+        <div class="person-full-main">
+            <h2 class="person-profile-name">
                 {{ person["first_name"] }}
                 {% if person["middle_name"] %} {{ person["middle_name"] }}{% endif %}
                 {% if person["last_name"] %} {{ person["last_name"] }}{% endif %}
             </h2>
 
             {% if person["maiden_name"] %}
-                <p class="person-maiden-name">Maiden name: {{ person["maiden_name"] }}</p>
+                <p class="muted">Maiden name: {{ person["maiden_name"] }}</p>
             {% endif %}
 
             {% set birth_display = format_partial_date(person["birth_year"], person["birth_month"], person["birth_day"], person["birth_date"]) %}
             {% set death_display = format_partial_date(person["death_year"], person["death_month"], person["death_day"], person["death_date"]) %}
 
-            <p class="person-dates">
-                {% if birth_display %}
-                    Born: {{ birth_display }}
-                {% endif %}
-                {% if death_display %}
-                    &nbsp;•&nbsp; Died: {{ death_display }}
-                {% endif %}
-            </p>
-
-            {% if person["gender"] %}
-                <p class="person-gender">Gender: {{ person["gender"] }}</p>
+            {% if birth_display or death_display %}
+                <p class="person-meta-line">
+                    {% if birth_display %}
+                        <span><strong>Born:</strong> {{ birth_display }}</span>
+                    {% endif %}
+                    {% if death_display %}
+                        <span><strong>Died:</strong> {{ death_display }}</span>
+                    {% endif %}
+                </p>
             {% endif %}
 
+            {% if person["gender"] %}
+                <p class="muted"><strong>Gender:</strong> {{ person["gender"] }}</p>
+            {% endif %}
         </div>
     </div>
 
-    <div class="person-body">
-        
-        <section class="person-section">
-            <h3>Profile Photo</h3>
-
+    <div class="person-full-section">
+        <div class="section-heading-row">
+            <h3>Relations</h3>
             {% if tree_role in ["owner", "editor"] %}
-                <form action="{{ url_for('upload_person_photo_route', person_id=person['id'], tree_id=tree_id) }}"
-                    method="post"
-                    enctype="multipart/form-data"
-                    style="margin-bottom: 10px;">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <input type="file" name="photo" accept="image/*" required>
-                    <button type="submit">Upload photo</button>
-                </form>
-
-                {% if person["photo_filename"] %}
-                    <form action="{{ url_for('delete_person_photo_route', person_id=person['id'], tree_id=tree_id) }}"
-                        method="post"
-                        onsubmit="return confirm('Delete this photo?');">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit">Delete photo</button>
-                    </form>
-                {% endif %}
-            {% else %}
-                <p class="muted">View only.</p>
+                <div class="section-actions">
+                    <a class="btn-link" href="{{ url_for('add_relation', person_id=person['id'], tree_id=tree_id) }}">Add relation</a>
+                    <a class="btn-link" href="{{ url_for('add_relation', person_id=person['id'], tree_id=tree_id, relation_type='parent') }}">Add parent</a>
+                    <a class="btn-link" href="{{ url_for('add_relation', person_id=person['id'], tree_id=tree_id, relation_type='child') }}">Add child</a>
+                    <a class="btn-link" href="{{ url_for('add_relation', person_id=person['id'], tree_id=tree_id, relation_type='spouse') }}">Add spouse</a>
+                </div>
             {% endif %}
-        </section>
+        </div>
 
-
-        <section class="person-section">
-            <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
-                <h3>Relations</h3>
-                {% if tree_role in ["owner", "editor"] %}
-                    <a href="{{ url_for('add_relation', person_id=person['id'], tree_id=tree_id) }}">Add relation</a>
-                    <a href="{{ url_for('add_relation', person_id=person['id'], tree_id=tree_id, relation_type='parent') }}">Add parent</a>
-                    <a href="{{ url_for('add_relation', person_id=person['id'], tree_id=tree_id, relation_type='child') }}">Add child</a>
-                    <a href="{{ url_for('add_relation', person_id=person['id'], tree_id=tree_id, relation_type='spouse') }}">Add spouse</a>
-                {% endif %}
-            </div>
-
-            {% if parents and parents|length > 0 %}
+        {% if parents and parents|length > 0 %}
+            <div class="relation-block">
                 <h4>Parents</h4>
-                <ul>
+                <ul class="relation-list">
                     {% for p in parents %}
                         <li>
-                            {{ role_label('parent', p['gender']) }}:
-                            <a href="{{ url_for('person_detail', person_id=p['id'], tree_id=tree_id) }}">
-                                {{ p['first_name'] }} {{ p['last_name'] }}
-                            </a>
+                            <div>
+                                {{ role_label('parent', p['gender']) }}:
+                                <a href="{{ url_for('person_detail', person_id=p['id'], tree_id=tree_id) }}">
+                                    {{ p['first_name'] }} {{ p['last_name'] }}
+                                </a>
+                            </div>
 
                             {% if tree_role in ["owner", "editor"] %}
                                 <form action="{{ url_for('delete_relation', person_id=p['id'], tree_id=tree_id) }}"
-                                    method="post"
-                                    style="display:inline;">
+                                      method="post"
+                                      class="inline-form">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <input type="hidden" name="relative_id" value="{{ person['id'] }}">
                                     <input type="hidden" name="relation_type" value="parent">
-                                    <button type="submit">Remove</button>
+                                    <button type="submit" class="btn-danger">Remove</button>
                                 </form>
                             {% endif %}
                         </li>
                     {% endfor %}
                 </ul>
-            {% endif %}
+            </div>
+        {% endif %}
 
-            {% if siblings and siblings|length > 0 %}
+        {% if siblings and siblings|length > 0 %}
+            <div class="relation-block">
                 <h4>Siblings</h4>
-                <ul>
+                <ul class="relation-list">
                     {% for s in siblings %}
-                        <li>{{ role_label('sibling', s['gender']) }}: <a href="{{ url_for('person_detail', person_id=s['id'], tree_id=tree_id) }}">{{ s['first_name'] }} {{ s['last_name'] }}</a></li>
-                    {% endfor %}
-                </ul>
-            {% else %}
-                <!--<p class="muted">No siblings detected.</p>-->
-            {% endif %}
-
-            {% if children and children|length > 0 %}
-                <h4>Children</h4>
-                <ul>
-                    {% for c in children %}
                         <li>
-                        {{ role_label('child', c['gender']) }}:
-                        <a href="{{ url_for('person_detail', person_id=c['id'], tree_id=tree_id) }}">
-                            {{ c['first_name'] }} {{ c['last_name'] }}
-                        </a>
-
-                        {% if tree_role in ["owner", "editor"] %}
-                            <form action="{{ url_for('delete_relation', person_id=person['id'], tree_id=tree_id) }}"
-                                method="post"
-                                style="display:inline;">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <input type="hidden" name="relative_id" value="{{ c['id'] }}">
-                                <input type="hidden" name="relation_type" value="parent">
-                                <button type="submit">Remove</button>
-                            </form>
-                        {% endif %}
-                    </li>
-                    {% endfor %}
-                </ul>
-            {% else %}
-                <!--<p class="muted">No children linked yet.</p>-->
-            {% endif %}
-
-            {% if spouses and spouses|length > 0 %}
-                <h4>Spouse</h4>
-                <ul>
-                {% for s in spouses %}
-                    <li>
-                        <a href="{{ url_for('person_detail', person_id=s['id'], tree_id=tree_id) }}">
-                            {{ s["first_name"] }} {{ s["last_name"] or "" }}
-                        </a>
-
-                        {% if tree_role in ["owner", "editor"] %}
-                            <form action="{{ url_for('delete_relation', person_id=person['id'], tree_id=tree_id) }}"
-                                method="post"
-                                style="display:inline;">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <input type="hidden" name="relative_id" value="{{ s['id'] }}">
-                                <input type="hidden" name="relation_type" value="spouse">
-                                <button type="submit">Remove</button>
-                            </form>
-                        {% endif %}
-                    </li>
-                {% endfor %}
-                </ul>
-            {% else %}
-                <!--<p class="muted">No spouse linked yet.</p>-->
-            {% endif %}
-
-            {% if grandparents and grandparents|length > 0 %}
-                <h4>Grandparents</h4>
-                <ul>
-                    {% for g in grandparents %}
-                        <li>
-                            {{ role_label('grandparent', g['gender']) }}:
-                            <a href="{{ url_for('person_detail', person_id=g['id'], tree_id=tree_id) }}">
-                                {{ g['first_name'] }} {{ g['last_name'] }}
-                            </a>
+                            <div>
+                                {{ role_label('sibling', s['gender']) }}:
+                                <a href="{{ url_for('person_detail', person_id=s['id'], tree_id=tree_id) }}">
+                                    {{ s['first_name'] }} {{ s['last_name'] }}
+                                </a>
+                            </div>
                         </li>
                     {% endfor %}
                 </ul>
-            {% endif %}
-            </section>
+            </div>
+        {% endif %}
 
-        
+        {% if children and children|length > 0 %}
+            <div class="relation-block">
+                <h4>Children</h4>
+                <ul class="relation-list">
+                    {% for c in children %}
+                        <li>
+                            <div>
+                                {{ role_label('child', c['gender']) }}:
+                                <a href="{{ url_for('person_detail', person_id=c['id'], tree_id=tree_id) }}">
+                                    {{ c['first_name'] }} {{ c['last_name'] }}
+                                </a>
+                            </div>
 
-        <!-- Description -->
-        <section class="person-section">
-            <h3>Description</h3>
-            {% if person["notes"] %}
-                <p>{{ person["notes"] }}</p>
-            {% else %}
-                <p class="muted">No description yet.</p>
-            {% endif %}
-        </section>
+                            {% if tree_role in ["owner", "editor"] %}
+                                <form action="{{ url_for('delete_relation', person_id=person['id'], tree_id=tree_id) }}"
+                                      method="post"
+                                      class="inline-form">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="relative_id" value="{{ c['id'] }}">
+                                    <input type="hidden" name="relation_type" value="parent">
+                                    <button type="submit" class="btn-danger">Remove</button>
+                                </form>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
 
-        <!-- Gallery -->
-        <section class="person-section">
+        {% if spouses and spouses|length > 0 %}
+            <div class="relation-block">
+                <h4>Spouse</h4>
+                <ul class="relation-list">
+                    {% for s in spouses %}
+                        <li>
+                            <div>
+                                <a href="{{ url_for('person_detail', person_id=s['id'], tree_id=tree_id) }}">
+                                    {{ s["first_name"] }} {{ s["last_name"] or "" }}
+                                </a>
+                            </div>
+
+                            {% if tree_role in ["owner", "editor"] %}
+                                <form action="{{ url_for('delete_relation', person_id=person['id'], tree_id=tree_id) }}"
+                                      method="post"
+                                      class="inline-form">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="relative_id" value="{{ s['id'] }}">
+                                    <input type="hidden" name="relation_type" value="spouse">
+                                    <button type="submit" class="btn-danger">Remove</button>
+                                </form>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+
+        {% if grandparents and grandparents|length > 0 %}
+            <div class="relation-block">
+                <h4>Grandparents</h4>
+                <ul class="relation-list">
+                    {% for g in grandparents %}
+                        <li>
+                            <div>
+                                {{ role_label('grandparent', g['gender']) }}:
+                                <a href="{{ url_for('person_detail', person_id=g['id'], tree_id=tree_id) }}">
+                                    {{ g['first_name'] }} {{ g['last_name'] }}
+                                </a>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+
+        {% if not parents and not siblings and not children and not spouses and not grandparents %}
+            <p class="muted">No relations linked yet.</p>
+        {% endif %}
+    </div>
+
+    <div class="person-full-section">
+        <h3>Description</h3>
+        {% if person["notes"] %}
+            <p class="person-description-text">{{ person["notes"] }}</p>
+        {% else %}
+            <p class="muted">No description yet.</p>
+        {% endif %}
+    </div>
+
+    <div class="person-full-section">
         <h3>Photo Gallery</h3>
 
         {% if tree_role in ["owner", "editor"] %}
             <form action="{{ url_for('upload_gallery_photo_route', person_id=person['id'], tree_id=tree_id) }}"
                 method="post"
                 enctype="multipart/form-data"
-                style="margin-bottom: 12px;">
+                class="upload-form">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="file" name="gallery_photo" accept="image/*" required>
-                <button type="submit">Upload to gallery</button>
+
+                <div class="custom-file-upload">
+                    <label for="gallery_photo" class="btn">Choose photo</label>
+                    <span id="gallery-file-name" class="file-name">No file selected</span>
+                    <input type="file" id="gallery_photo" name="gallery_photo" accept="image/*" required hidden>
+                </div>
+
+                <button type="submit" class="btn">Upload to gallery</button>
             </form>
         {% endif %}
 
         {% if photos and photos|length > 0 %}
-            <div style="display:flex; gap:12px; flex-wrap:wrap;">
+            <div class="gallery-grid">
                 {% for photo in photos %}
-                    <div style="border:1px solid #ccc; padding:8px; border-radius:8px;">
+                    <div class="gallery-card">
                         <img
                             src="{{ url_for('static', filename='uploads/' ~ photo['filename']) }}"
                             alt="Gallery photo"
                             class="gallery-thumb"
                             data-fullsrc="{{ url_for('static', filename='uploads/' ~ photo['filename']) }}"
-                            style="width:140px; height:140px; object-fit:cover; display:block; margin-bottom:8px; cursor:pointer;"
                         >
 
                         {% if tree_role in ["owner", "editor"] %}
                             <form action="{{ url_for('delete_gallery_photo_route', person_id=person['id'], photo_id=photo['id'], tree_id=tree_id) }}"
-                                method="post"
-                                onsubmit="return confirm('Delete this gallery photo?');">
+                                  method="post"
+                                  class="inline-form"
+                                  onsubmit="return confirm('Delete this gallery photo?');">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit">Delete</button>
+                                <button type="submit" class="btn-danger">Delete</button>
                             </form>
                         {% endif %}
                     </div>
@@ -292,27 +314,16 @@
         {% else %}
             <p class="muted">No gallery photos yet.</p>
         {% endif %}
-    </section>
-        </div>
-
-    <p>
-        <a href="{{ url_for('persons', tree_id=tree_id) }}">Back to list</a>
-    </p>
+    </div>
 </div>
 
-<div id="photoLightbox"
-     style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:9999; align-items:center; justify-content:center; padding:30px;">
-    
-    <button id="lightboxClose"
-            type="button"
-            style="position:absolute; top:20px; right:20px; font-size:28px; background:none; border:none; color:white; cursor:pointer;">
-        ×
-    </button>
+<div id="photoLightbox" class="lightbox">
+    <button id="lightboxClose" type="button" class="lightbox-close">×</button>
 
     <img id="lightboxImage"
          src=""
          alt="Full size photo"
-         style="max-width:90vw; max-height:90vh; border-radius:10px; box-shadow:0 0 20px rgba(0,0,0,0.5);">
+         class="lightbox-image">
 </div>
 
 <script>
@@ -340,20 +351,45 @@
         });
     });
 
-    closeBtn.addEventListener("click", closeLightbox);
+    if (closeBtn) {
+        closeBtn.addEventListener("click", closeLightbox);
+    }
 
-    lightbox.addEventListener("click", (e) => {
-        if (e.target === lightbox) {
-            closeLightbox();
-        }
-    });
+    if (lightbox) {
+        lightbox.addEventListener("click", (e) => {
+            if (e.target === lightbox) {
+                closeLightbox();
+            }
+        });
+    }
 
     document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape" && lightbox.style.display === "flex") {
+        if (e.key === "Escape" && lightbox && lightbox.style.display === "flex") {
             closeLightbox();
         }
     });
+
+    const photoInput = document.getElementById("photo");
+    const photoFileName = document.getElementById("photo-file-name");
+
+    if (photoInput && photoFileName) {
+        photoInput.addEventListener("change", function () {
+            photoFileName.textContent = this.files.length
+                ? this.files[0].name
+                : "No file selected";
+        });
+    }
+
+    const galleryInput = document.getElementById("gallery_photo");
+    const galleryFileName = document.getElementById("gallery-file-name");
+
+    if (galleryInput && galleryFileName) {
+        galleryInput.addEventListener("change", function () {
+            galleryFileName.textContent = this.files.length
+                ? this.files[0].name
+                : "No file selected";
+        });
+    }
 })();
 </script>
-
 {% endblock %}

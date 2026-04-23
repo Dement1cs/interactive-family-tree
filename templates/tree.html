@@ -1,24 +1,38 @@
 {% extends "base.html" %}
 
+{% block title %}Family Tree — Interactive Family Tree{% endblock %}
+
 {% block content %}
-<h2>
-    Family Tree
-    {% if current_tree %}
-        — {{ current_tree.title }}
-    {% endif %}
-</h2>
-<p>
-    {% if tree_id %}
-        <a href="{{ url_for('persons', tree_id=tree_id) }}">Manage people</a>
-    {% endif %}
-</p>
+<div class="page-section">
+    <div class="person-topbar">
+        <div class="person-topbar-left">
+            <a class="btn-link" href="{{ url_for('dashboard') }}">Back to dashboard</a>
+            {% if tree_id %}
+                <a class="btn-link" href="{{ url_for('persons', tree_id=tree_id) }}">Manage people</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
 
-<script src="https://unpkg.com/gojs/release/go.js"></script>
+<div class="tree-page-card">
+    <div class="tree-page-header">
+        <div>
+            <h2 class="tree-page-title">
+                Family Tree
+                {% if current_tree %}
+                    — {{ current_tree.title }}
+                {% endif %}
+            </h2>
+            <p class="muted">Click a person to open their profile.</p>
+        </div>
+    </div>
 
-<div id="diagramDiv" style="width:100%; height:600px; border:1px solid #ccc;"></div>
+    <script src="https://unpkg.com/gojs/release/go.js"></script>
+
+    <div id="diagramDiv" class="tree-diagram"></div>
+</div>
 
 <script>
-  // даст строку вида "/persons/0"
   window.PERSON_URL_TEMPLATE = "{{ url_for('person_detail', person_id=0, tree_id=tree_id) }}";
 </script>
 

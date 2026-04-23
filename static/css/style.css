@@ -1,3 +1,23 @@
+.custom-file-upload {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.file-name {
+    color: #666;
+    font-size: 0.95rem;
+    max-width: 260px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.person-description-text {
+    white-space: pre-line;
+}
+
 .person-detail {
     background: #ffffff;
     padding: 20px;
@@ -51,4 +71,637 @@
 .muted {
     color: #888;
     font-size: 0.9rem;
+}
+
+
+/* ========== Base / Layout ======================================================= */
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: #f6f6f6;
+    color: #111;
+    font-family: Georgia, "Times New Roman", serif;
+    line-height: 1.5;
+}
+
+.site-container {
+    width: min(1200px, calc(100% - 32px));
+    margin: 0 auto;
+}
+
+.site-header {
+    background: #fff;
+    border-bottom: 1px solid #ddd;
+}
+
+.site-header-inner {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: center;
+    padding: 18px 0;
+    flex-wrap: wrap;
+}
+
+.site-brand-link {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #111;
+    text-decoration: none;
+}
+
+.site-brand-link:hover {
+    text-decoration: none;
+}
+
+.site-nav {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.site-nav-link {
+    color: #222;
+    text-decoration: none;
+    padding: 8px 12px;
+    border-radius: 8px;
+}
+
+.site-nav-link:hover {
+    background: #f1f1f1;
+    text-decoration: none;
+}
+
+.site-main {
+    padding: 28px 0 36px;
+}
+
+.site-footer {
+    border-top: 1px solid #ddd;
+    background: #fff;
+    color: #666;
+    padding: 18px 0;
+    margin-top: 32px;
+}
+
+
+/* ========== Home / Index ======================================================== */
+.hero-section {
+    margin-bottom: 28px;
+}
+
+.hero-card {
+    border: 1px solid #ddd;
+    border-radius: 16px;
+    background: #fff;
+    padding: 28px;
+}
+
+.hero-eyebrow {
+    margin: 0 0 10px 0;
+    color: #666;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.hero-title {
+    margin: 0 0 14px 0;
+    max-width: 800px;
+}
+
+.hero-text {
+    max-width: 760px;
+    margin: 0 0 18px 0;
+    color: #444;
+}
+
+.hero-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+}
+
+.feature-card {
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    background: #fff;
+    padding: 20px;
+}
+
+/* ========== Auth ============================================================= */
+.auth-page {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+.auth-card {
+    width: min(520px, 100%);
+    border: 1px solid #ddd;
+    border-radius: 14px;
+    background: #fff;
+    padding: 24px;
+}
+
+.auth-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font: inherit;
+    background: #fff;
+}
+
+.auth-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.checkbox-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+
+/* ========== Forms ========================================================== */
+.form-card {
+    border: 1px solid #ddd;
+    border-radius: 14px;
+    background: #fff;
+    padding: 22px;
+    margin-bottom: 24px;
+}
+
+.stack-form {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+}
+
+.form-section {
+    padding-top: 18px;
+    border-top: 1px solid #eee;
+}
+
+.form-section:first-of-type {
+    padding-top: 0;
+    border-top: none;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.form-group-wide {
+    grid-column: 1 / -1;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    padding: 10px 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font: inherit;
+    background: #fff;
+}
+
+.form-group textarea {
+    resize: vertical;
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+/* ========== Dashboard ======================================================== */
+.page-section {
+    margin-bottom: 28px;
+}
+
+.tree-create-form {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.tree-create-form input[type="text"] {
+    min-width: 280px;
+    padding: 9px 12px;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    font: inherit;
+    background: #fff;
+}
+
+.tree-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.tree-card {
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    padding: 16px;
+    background: #fff;
+}
+
+.tree-card-title {
+    margin: 0 0 8px 0;
+}
+
+.tree-card-body {
+    margin-bottom: 14px;
+}
+
+.tree-card-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.inline-form {
+    display: inline;
+}
+
+.btn,
+.btn-danger,
+.btn-link {
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 8px 12px;
+    text-decoration: none;
+    background: #f8f8f8;
+    color: #111;
+    cursor: pointer;
+    font: inherit;
+}
+
+.btn:hover,
+.btn-link:hover {
+    background: #efefef;
+}
+
+.btn-danger {
+    border-color: #d9b3b3;
+    background: #fff5f5;
+}
+
+.btn-danger:hover {
+    background: #ffeaea;
+}
+
+.muted {
+    color: #666;
+}
+
+/* ========== People List ====================================================== */
+.people-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.people-list-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+    align-items: center;
+    border: 1px solid #e8e8e8;
+    border-radius: 12px;
+    padding: 14px 16px;
+    background: #fff;
+}
+
+.people-list-main {
+    flex: 1 1 320px;
+    min-width: 0;
+}
+
+.people-name-link {
+    font-size: 1.05rem;
+    font-weight: bold;
+    text-decoration: none;
+    color: #111;
+}
+
+.people-name-link:hover {
+    text-decoration: underline;
+}
+
+.people-meta {
+    margin-top: 6px;
+    font-size: 0.95rem;
+}
+
+.people-list-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+/* ========== Access Page ====================================================== */
+.access-form {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: end;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group input,
+.form-group select {
+    min-width: 220px;
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font: inherit;
+    background: #fff;
+}
+
+.error-text {
+    color: #b00020;
+    margin-bottom: 12px;
+}
+
+
+/* ========== Person Profile ==================================================== */
+.person-topbar {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.person-topbar-left,
+.person-topbar-right {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.person-full-card {
+    border: 1px solid #ddd;
+    border-radius: 14px;
+    background: #fff;
+    padding: 22px;
+    margin-bottom: 24px;
+}
+
+.person-full-header {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    padding-bottom: 20px;
+}
+
+.person-full-photo {
+    flex: 0 0 180px;
+}
+
+.person-full-main {
+    flex: 1 1 420px;
+}
+
+.profile-photo-img {
+    width: 180px;
+    height: 180px;
+    object-fit: cover;
+    border-radius: 14px;
+    border: 1px solid #ccc;
+    display: block;
+}
+
+.profile-photo-placeholder {
+    width: 180px;
+    height: 180px;
+    border-radius: 14px;
+    border: 1px solid #ccc;
+    background: #f3f3f3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 46px;
+    font-weight: bold;
+    color: #555;
+}
+
+.profile-photo-actions {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.person-profile-name {
+    margin: 0 0 12px 0;
+}
+
+.person-meta-line {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    margin: 10px 0;
+}
+
+.person-full-section {
+    padding-top: 22px;
+    margin-top: 22px;
+    border-top: 1px solid #eee;
+}
+
+.section-heading-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.section-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.upload-form {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.relation-block {
+    margin-top: 18px;
+}
+
+.relation-block h4 {
+    margin-bottom: 8px;
+}
+
+.relation-list {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+}
+
+.relation-list li {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #f3f3f3;
+}
+
+.relation-list li:last-child {
+    border-bottom: none;
+}
+
+.gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+}
+
+.gallery-card {
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    padding: 12px;
+    background: #fff;
+}
+
+.gallery-thumb {
+    width: 100%;
+    max-height: 220px;
+    object-fit: contain;
+    background: #f5f5f5;
+    display: block;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    cursor: pointer;
+}
+
+.lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+}
+
+.lightbox-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    font-size: 28px;
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+}
+
+.lightbox-image {
+    max-width: 90vw;
+    max-height: 90vh;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+}
+
+/* ========== Relation Add ============================================================ */
+.search-results-box {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    margin-top: 8px;
+    display: none;
+    background: #fff;
+    max-width: 520px;
+    overflow: hidden;
+}
+
+.search-result-item {
+    padding: 10px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #f1f1f1;
+}
+
+.search-result-item:last-child {
+    border-bottom: none;
+}
+
+.search-result-item:hover {
+    background: #f7f7f7;
+}
+
+.selected-person-text {
+    margin-top: 10px;
+}
+
+/* ========== Tree Page ========== */
+.tree-page-card {
+    border: 1px solid #ddd;
+    border-radius: 14px;
+    background: #fff;
+    padding: 20px;
+    margin-bottom: 24px;
+}
+
+.tree-page-header {
+    margin-bottom: 16px;
+}
+
+.tree-page-title {
+    margin: 0 0 8px 0;
+}
+
+.tree-diagram {
+    width: 100%;
+    height: 700px;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    background: #fafafa;
 }

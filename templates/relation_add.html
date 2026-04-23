@@ -1,78 +1,87 @@
 {% extends "base.html" %}
 
-{% block title %}Add relation for {{ person["first_name"] }}{% endblock %}
+{% block title %}Add Relation — Interactive Family Tree{% endblock %}
 
 {% block content %}
-<h2>Add relation for {{ person["first_name"] }} {{ person["last_name"] or "" }}</h2>
-
-{% if error %}
-    <p style="color: red; margin-bottom: 12px;">{{ error }}</p>
-{% endif %}
-
-<form action="{{ url_for('add_relation', person_id=person['id'], tree_id=tree_id) }}" method="post">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <div>
-        <label for="relation_type">Relation type</label><br>
-        <select id="relation_type" name="relation_type" required>
-            <option value="">-- choose --</option>
-            <option value="parent" {% if preset_relation_type == "parent" %}selected{% endif %}>Parent</option>
-            <option value="child" {% if preset_relation_type == "child" %}selected{% endif %}>Child</option>
-            <option value="spouse" {% if preset_relation_type == "spouse" %}selected{% endif %}>Spouse</option>
-        </select>
+<div class="page-section">
+    <div class="person-topbar">
+        <div class="person-topbar-left">
+            <a class="btn-link" href="{{ url_for('person_detail', person_id=person['id'], tree_id=tree_id) }}">Back to profile</a>
+            <a class="btn-link" href="{{ url_for('persons', tree_id=tree_id) }}">Back to people</a>
+            <a class="btn-link" href="{{ url_for('tree', tree_id=tree_id) }}">Back to tree</a>
+        </div>
     </div>
+</div>
 
-    <label for="relative_search">Select person</label><br>
+<div class="form-card">
+    <h2>Add relation</h2>
+    <p class="muted">
+        For: <strong>{{ person["first_name"] }} {{ person["last_name"] or "" }}</strong>
+    </p>
 
-    <!-- Поле ввода: пользователь печатает имя человека -->
-    <input
-        type="text" 
-        id="relative_search" 
-        placeholder="Type a name..." 
-        autocomplete="off"
-    >
+    {% if error %}
+        <p class="error-text">{{ error }}</p>
+    {% endif %}
 
-    <!-- Скрытое поле: сдесь ID выбранного человека.
-     Оно отправится на сервер при submit формы -->
-    <input type="hidden" name="relative_id" id="relative_id">
+    <form action="{{ url_for('add_relation', person_id=person['id'], tree_id=tree_id) }}" method="post" class="stack-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-    <!-- Контейнер, где будут показываться варианты из поиска.
-     Сначала скрыт (display:none) -->
-    <div id="search_results" style="border:1px solid #ddd; margin-top:6px; display:none;"></div>
-    <!-- Текст “Selected: ...” для пользователя -->
-    <p id="selected_person" class="muted"></p>
+        <div class="form-section">
+            <h3>Relation type</h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="relation_type">Choose relation</label>
+                    <select id="relation_type" name="relation_type" required>
+                        <option value="">-- choose --</option>
+                        <option value="parent" {% if preset_relation_type == "parent" %}selected{% endif %}>Parent</option>
+                        <option value="child" {% if preset_relation_type == "child" %}selected{% endif %}>Child</option>
+                        <option value="spouse" {% if preset_relation_type == "spouse" %}selected{% endif %}>Spouse</option>
+                    </select>
+                </div>
+            </div>
+        </div>
 
-    <!-- сохранить связь -->
-    <button type="submit">Save relation</button>
-</form>
+        <div class="form-section">
+            <h3>Select person</h3>
 
-<p><a href="{{ url_for('person_detail', person_id=person['id'], tree_id=tree_id) }}">Back to profile</a></p>
+            <div class="form-group">
+                <label for="relative_search">Search by name</label>
+                <input
+                    type="text"
+                    id="relative_search"
+                    placeholder="Type a name..."
+                    autocomplete="off"
+                >
+            </div>
+
+            <input type="hidden" name="relative_id" id="relative_id">
+
+            <div id="search_results" class="search-results-box"></div>
+            <p id="selected_person" class="muted selected-person-text"></p>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn">Save relation</button>
+            <a class="btn-link" href="{{ url_for('person_detail', person_id=person['id'], tree_id=tree_id) }}">Cancel</a>
+        </div>
+    </form>
+</div>
 
 <script>
-    (function () {
+(function () {
+    const form = document.querySelector("form");
+    const input = document.getElementById("relative_search");
+    const resultsBox = document.getElementById("search_results");
+    const hiddenId = document.getElementById("relative_id");
+    const selected = document.getElementById("selected_person");
 
-    // Находим нужные элементы на странице
-    const form = document.querySelector("form"); // сама форма
-    const input = document.getElementById("relative_search"); // поле поиска
-    const resultsBox = document.getElementById("search_results"); // контейнер результатов
-    const hiddenId = document.getElementById("relative_id"); // скрытое поле ID
-    const selected = document.getElementById("selected_person"); // текст "Selected: ..."
-
-    // AbortController нужен, чтобы отменять предыдущий запрос поиска,
-    // если пользователь быстро печатает и мы запускаем новый запрос.
     let lastController = null;
 
-    // Очистить список результатов и скрыть его
     function clearResults() {
         resultsBox.innerHTML = "";
         resultsBox.style.display = "none";
     }
 
-
-    // Когда человек выбран из результатов:
-    // 1) записываем его id в hidden поле (важно для submit формы)
-    // 2) показываем пользователю, кого выбрали
-    // 3) вставляем имя в input
-    // 4) очищаем результаты
     function setSelected(p) {
         hiddenId.value = p.id;
         selected.textContent = `Selected: ${p.first_name} ${p.last_name || ""}`.trim();
@@ -80,74 +89,62 @@
         clearResults();
     }
 
-    // Функция поиска: делает запрос к Flask API и возвращает массив persons
     async function search(q) {
-
-        const treeId = "{{ tree_id }}";
-        const currentPersonId = "{{ person['id'] }}";
-        // если уже был запрос — отменяем его
         if (lastController) lastController.abort();
         lastController = new AbortController();
 
-        // GET /api/persons/search?q=
-        const res = await fetch(
-            `/api/persons/search?q=${encodeURIComponent(q)}&tree_id=${encodeURIComponent(treeId)}&exclude_id=${encodeURIComponent(currentPersonId)}`,
-            { signal: lastController.signal }
-        );
+        const url = `/api/persons/search?q=${encodeURIComponent(q)}&tree_id={{ tree_id }}&exclude_id={{ person['id'] }}`;
 
-        // если сервер вернул ошибку — считаем что результатов нет
+        const res = await fetch(url, {
+            signal: lastController.signal
+        });
+
         if (!res.ok) return [];
-
-        // ожидаем JSON 
         return await res.json();
     }
 
-    // Событие: пользователь что-то печатает в input
     input.addEventListener("input", async () => {
         const q = input.value.trim();
 
-        // Каждый раз при наборе сбрасываем выбранного человека, потому что пользователь меняет запрос
         hiddenId.value = "";
         selected.textContent = "";
 
-        // Если слишком коротко (меньше 2 символов) — не ищем
         if (q.length < 1) {
-        clearResults();
-        return;
+            clearResults();
+            return;
         }
 
-        // Получаем список подходящих людей с сервера
         const persons = await search(q);
 
-        // Готовим resultsBox под новый список
         resultsBox.innerHTML = "";
         resultsBox.style.display = persons.length ? "block" : "none";
 
-        // Для каждого найденного человека создаём кликабельный div
         persons.forEach(p => {
-        const item = document.createElement("div");
-        item.style.padding = "8px";
-        item.style.cursor = "pointer";
-        item.textContent = `${p.first_name} ${p.last_name || ""}`.trim();
-        item.addEventListener("click", () => setSelected(p));
-        resultsBox.appendChild(item);
+            const item = document.createElement("div");
+            item.className = "search-result-item";
+
+            const fullName = `${p.first_name || ""} ${p.middle_name || ""} ${p.last_name || ""}`.replace(/\s+/g, " ").trim();
+            const maiden = p.maiden_name ? ` (maiden: ${p.maiden_name})` : "";
+
+            item.textContent = `${fullName}${maiden}`.trim();
+            item.addEventListener("click", () => setSelected(p));
+
+            resultsBox.appendChild(item);
         });
     });
 
-    // Закрыть список результатов, если кликнули вне него и не на input
     document.addEventListener("click", (e) => {
         if (!resultsBox.contains(e.target) && e.target !== input) {
-        clearResults();
+            clearResults();
         }
     });
 
-    // Перед отправкой формы проверяем: если hiddenId пустой — значит пользователь НЕ выбрал человека из списка
     form.addEventListener("submit", (e) => {
         if (!hiddenId.value) {
-        e.preventDefault(); // отменяем отправку формы
-        alert("Please select a person from search results.");
+            e.preventDefault();
+            alert("Please select a person from search results.");
         }
     });
-    })();
+})();
 </script>
 {% endblock %}
