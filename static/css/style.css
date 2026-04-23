@@ -699,11 +699,11 @@ h1, h2, h3, h4 {
     display: none;
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.85);
+    background: rgba(0,0,0,0.9);
     z-index: 9999;
     align-items: center;
     justify-content: center;
-    padding: 30px;
+    padding: 24px;
 }
 
 .lightbox-close {
@@ -718,8 +718,12 @@ h1, h2, h3, h4 {
 }
 
 .lightbox-image {
-    max-width: 90vw;
-    max-height: 90vh;
+    width: auto;
+    height: auto;
+    min-width: 350px;
+    max-width: 95vw;
+    max-height: 92vh;
+    object-fit: contain;
     border-radius: 10px;
     box-shadow: 0 0 20px rgba(0,0,0,0.5);
 }
