@@ -24,6 +24,8 @@
                 {% if current_user.is_authenticated %}
                     <a class="site-nav-link" href="{{ url_for('dashboard') }}">Dashboard</a>
 
+                    <button type="button" class="btn" id="themeToggle">Toggle theme</button>
+
                     <form action="{{ url_for('logout') }}" method="post" class="inline-form">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="btn">Logout</button>
@@ -47,5 +49,36 @@
             <p>© 2025 Interactive Family Tree</p>
         </div>
     </footer>
+
+    <script>
+        (function () {
+            const savedTheme = localStorage.getItem("theme");
+
+            if (savedTheme === "dark") {
+                document.body.classList.add("dark-theme");
+            }
+
+            window.addEventListener("DOMContentLoaded", function () {
+                const btn = document.getElementById("themeToggle");
+                if (!btn) return;
+
+                function updateButtonText() {
+                    const isDark = document.body.classList.contains("dark-theme");
+                    btn.textContent = isDark ? "Light mode" : "Dark mode";
+                }
+
+                btn.addEventListener("click", function () {
+                    document.body.classList.toggle("dark-theme");
+
+                    const isDark = document.body.classList.contains("dark-theme");
+                    localStorage.setItem("theme", isDark ? "dark" : "light");
+
+                    updateButtonText();
+                });
+
+                updateButtonText();
+            });
+        })();
+    </script>
 </body>
 </html>

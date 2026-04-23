@@ -19,7 +19,7 @@
 }
 
 .person-detail {
-    background: #ffffff;
+    background: var(--surface);
     padding: 20px;
     border-radius: 8px;
     box-shadow: 0 2px 6px rgba(0,0,0,0.08);
@@ -73,6 +73,34 @@
     font-size: 0.9rem;
 }
 
+/* ========== Theme ========== */
+:root {
+    --bg: #f6f6f6;
+    --surface: #ffffff;
+    --surface-soft: #f8f8f8;
+    --text: #111111;
+    --muted: #666666;
+    --border: #dddddd;
+    --border-soft: #e8e8e8;
+    --hover: #efefef;
+    --danger-bg: #fff5f5;
+    --danger-hover: #ffeaea;
+    --danger-border: #d9b3b3;
+}
+
+body.dark-theme {
+    --bg: #151515;
+    --surface: #1f1f1f;
+    --surface-soft: #2a2a2a;
+    --text: #f3f3f3;
+    --muted: #b3b3b3;
+    --border: #3a3a3a;
+    --border-soft: #333333;
+    --hover: #313131;
+    --danger-bg: #3a2222;
+    --danger-hover: #4a2a2a;
+    --danger-border: #7a4a4a;
+}
 
 /* ========== Base / Layout ======================================================= */
 * {
@@ -81,8 +109,8 @@
 
 body {
     margin: 0;
-    background: #f6f6f6;
-    color: #111;
+    background: var(--bg);
+    color: var(--text);
     font-family: "Inter", sans-serif;
     line-height: 1.5;
 }
@@ -97,8 +125,8 @@ h1, h2, h3, h4 {
 }
 
 .site-header {
-    background: #fff;
-    border-bottom: 1px solid #ddd;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
 }
 
 .site-header-inner {
@@ -107,13 +135,12 @@ h1, h2, h3, h4 {
     gap: 16px;
     align-items: center;
     padding: 18px 0;
-    flex-wrap: wrap;
 }
 
 .site-brand-link {
     font-size: 2rem;
     font-weight: bold;
-    color: #111;
+    color: var(--text);
     text-decoration: none;
 }
 
@@ -129,14 +156,14 @@ h1, h2, h3, h4 {
 }
 
 .site-nav-link {
-    color: #222;
+    color: var(--text);
     text-decoration: none;
     padding: 8px 12px;
     border-radius: 8px;
 }
 
 .site-nav-link:hover {
-    background: #f1f1f1;
+    background: var(--hover);
     text-decoration: none;
 }
 
@@ -145,9 +172,9 @@ h1, h2, h3, h4 {
 }
 
 .site-footer {
-    border-top: 1px solid #ddd;
-    background: #fff;
-    color: #666;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
     padding: 18px 0;
     margin-top: 32px;
 }
@@ -159,15 +186,15 @@ h1, h2, h3, h4 {
 }
 
 .hero-card {
-    border: 1px solid #ddd;
+    border: 1px solid var(--border);
     border-radius: 16px;
-    background: #fff;
+    background: var(--surface);
     padding: 28px;
 }
 
 .hero-eyebrow {
     margin: 0 0 10px 0;
-    color: #666;
+    color: var(--muted);
     font-size: 0.95rem;
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -181,7 +208,7 @@ h1, h2, h3, h4 {
 .hero-text {
     max-width: 760px;
     margin: 0 0 18px 0;
-    color: #444;
+    color: var(--muted);
 }
 
 .hero-actions {
@@ -197,9 +224,9 @@ h1, h2, h3, h4 {
 }
 
 .feature-card {
-    border: 1px solid #ddd;
+    border: 1px solid var(--border);
     border-radius: 12px;
-    background: #fff;
+    background: var(--surface);
     padding: 20px;
 }
 
@@ -212,19 +239,20 @@ h1, h2, h3, h4 {
 
 .auth-card {
     width: min(520px, 100%);
-    border: 1px solid #ddd;
+    border: 1px solid var(--border);
     border-radius: 14px;
-    background: #fff;
+    background: var(--surface);
     padding: 24px;
 }
 
 .auth-input {
     width: 100%;
     padding: 10px 12px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--border);
+    color: var(--text);
     border-radius: 8px;
     font: inherit;
-    background: #fff;
+    background: var(--surface);
 }
 
 .auth-row {
@@ -242,9 +270,9 @@ h1, h2, h3, h4 {
 
 /* ========== Forms ========================================================== */
 .form-card {
-    border: 1px solid #ddd;
+    border: 1px solid var(--border);
     border-radius: 14px;
-    background: #fff;
+    background: var(--surface);
     padding: 22px;
     margin-bottom: 24px;
 }
@@ -257,7 +285,7 @@ h1, h2, h3, h4 {
 
 .form-section {
     padding-top: 18px;
-    border-top: 1px solid #eee;
+    border-top: 1px solid var(--border);
 }
 
 .form-section:first-of-type {
@@ -285,10 +313,11 @@ h1, h2, h3, h4 {
 .form-group select,
 .form-group textarea {
     padding: 10px 12px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--border);
+    color: var(--text);
     border-radius: 8px;
     font: inherit;
-    background: #fff;
+    background: var(--surface);
 }
 
 .form-group textarea {
@@ -318,10 +347,11 @@ h1, h2, h3, h4 {
 .tree-create-form input[type="text"] {
     min-width: 280px;
     padding: 9px 12px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--border);
+    color: var(--text);
     border-radius: 10px;
     font: inherit;
-    background: #fff;
+    background: var(--surface);
 }
 
 .tree-grid {
@@ -332,10 +362,10 @@ h1, h2, h3, h4 {
 }
 
 .tree-card {
-    border: 1px solid #ddd;
+    border: 1px solid var(--border);
     border-radius: 12px;
     padding: 16px;
-    background: #fff;
+    background: var(--surface);
 }
 
 .tree-card-title {
@@ -360,32 +390,36 @@ h1, h2, h3, h4 {
 .btn,
 .btn-danger,
 .btn-link {
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    padding: 8px 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 9px 14px;
     text-decoration: none;
-    background: #f8f8f8;
-    color: #111;
+    background: var(--surface-soft);
+    color: var(--text);
     cursor: pointer;
     font: inherit;
 }
 
 .btn:hover,
 .btn-link:hover {
-    background: #efefef;
+    background: var(--hover);
+    text-decoration: none;
 }
 
 .btn-danger {
-    border-color: #d9b3b3;
-    background: #fff5f5;
+    border-color: var(--danger-border);
+    background: var(--danger-bg);
 }
 
 .btn-danger:hover {
-    background: #ffeaea;
+    background: var(--danger-hover);
 }
 
 .muted {
-    color: #666;
+    color: var(--muted);
 }
 
 /* ========== People List ====================================================== */
@@ -402,10 +436,10 @@ h1, h2, h3, h4 {
     gap: 14px;
     flex-wrap: wrap;
     align-items: center;
-    border: 1px solid #e8e8e8;
+    border: 1px solid var(--border-soft);
     border-radius: 12px;
     padding: 14px 16px;
-    background: #fff;
+    background: var(--surface);
 }
 
 .people-list-main {
@@ -417,7 +451,7 @@ h1, h2, h3, h4 {
     font-size: 1.05rem;
     font-weight: bold;
     text-decoration: none;
-    color: #111;
+    color: var(--text);
 }
 
 .people-name-link:hover {
@@ -456,7 +490,7 @@ h1, h2, h3, h4 {
     border: 1px solid #ccc;
     border-radius: 8px;
     font: inherit;
-    background: #fff;
+    background: var(--surface);
 }
 
 .error-text {
@@ -483,9 +517,9 @@ h1, h2, h3, h4 {
 }
 
 .person-full-card {
-    border: 1px solid #ddd;
+    border: 1px solid var(--border);
     border-radius: 14px;
-    background: #fff;
+    background: var(--surface);
     padding: 22px;
     margin-bottom: 24px;
 }
@@ -511,7 +545,7 @@ h1, h2, h3, h4 {
     height: 180px;
     object-fit: cover;
     border-radius: 14px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--border);
     display: block;
 }
 
@@ -519,14 +553,14 @@ h1, h2, h3, h4 {
     width: 180px;
     height: 180px;
     border-radius: 14px;
-    border: 1px solid #ccc;
-    background: #f3f3f3;
+    border: 1px solid var(--border);
+    background: var(--surface-soft);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 46px;
     font-weight: bold;
-    color: #555;
+    color: var(--muted);
 }
 
 .profile-photo-actions {
@@ -550,7 +584,7 @@ h1, h2, h3, h4 {
 .person-full-section {
     padding-top: 22px;
     margin-top: 22px;
-    border-top: 1px solid #eee;
+    border-top: 1px solid var(--border);
 }
 
 .section-heading-row {
@@ -596,7 +630,7 @@ h1, h2, h3, h4 {
     flex-wrap: wrap;
     align-items: center;
     padding: 10px 0;
-    border-bottom: 1px solid #f3f3f3;
+    border-bottom: 1px solid var(--border-soft);
 }
 
 .relation-list li:last-child {
@@ -610,17 +644,17 @@ h1, h2, h3, h4 {
 }
 
 .gallery-card {
-    border: 1px solid #ddd;
+    border: 1px solid var(--border);
     border-radius: 12px;
     padding: 12px;
-    background: #fff;
+    background: var(--surface);
 }
 
 .gallery-thumb {
     width: 100%;
     max-height: 220px;
     object-fit: contain;
-    background: #f5f5f5;
+    background: var(--surface-soft);
     display: block;
     border-radius: 8px;
     margin-bottom: 10px;
@@ -658,11 +692,11 @@ h1, h2, h3, h4 {
 
 /* ========== Relation Add ============================================================ */
 .search-results-box {
-    border: 1px solid #ddd;
+    border: 1px solid var(--border);
     border-radius: 8px;
     margin-top: 8px;
     display: none;
-    background: #fff;
+    background: var(--surface);
     max-width: 520px;
     overflow: hidden;
 }
@@ -670,7 +704,7 @@ h1, h2, h3, h4 {
 .search-result-item {
     padding: 10px 12px;
     cursor: pointer;
-    border-bottom: 1px solid #f1f1f1;
+    border-bottom: 1px solid var(--border-soft);
 }
 
 .search-result-item:last-child {
@@ -678,7 +712,7 @@ h1, h2, h3, h4 {
 }
 
 .search-result-item:hover {
-    background: #f7f7f7;
+    background: var(--hover);
 }
 
 .selected-person-text {
@@ -687,9 +721,9 @@ h1, h2, h3, h4 {
 
 /* ========== Tree Page ========== */
 .tree-page-card {
-    border: 1px solid #ddd;
+    border: 1px solid var(--border);
     border-radius: 14px;
-    background: #fff;
+    background: var(--surface);
     padding: 20px;
     margin-bottom: 24px;
 }
@@ -705,7 +739,7 @@ h1, h2, h3, h4 {
 .tree-diagram {
     width: 100%;
     height: 700px;
-    border: 1px solid #ddd;
+    border: 1px solid var(--border);
     border-radius: 12px;
-    background: #fafafa;
+    background: var(--surface-soft);
 }
