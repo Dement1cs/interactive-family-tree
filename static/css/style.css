@@ -73,7 +73,7 @@
     font-size: 0.9rem;
 }
 
-/* ========== Theme ========== */
+/* ========== Theme =============================================================== */
 :root {
     --bg: #f6f6f6;
     --surface: #ffffff;
@@ -86,6 +86,8 @@
     --danger-bg: #fff5f5;
     --danger-hover: #ffeaea;
     --danger-border: #d9b3b3;
+    --link: #1f4f8f;
+    --link-hover: #163a69;
 }
 
 body.dark-theme {
@@ -100,6 +102,8 @@ body.dark-theme {
     --danger-bg: #3a2222;
     --danger-hover: #4a2a2a;
     --danger-border: #7a4a4a;
+    --link: #8ab4ff;
+    --link-hover: #b3ccff;
 }
 
 /* ========== Base / Layout ======================================================= */
@@ -113,6 +117,17 @@ body {
     color: var(--text);
     font-family: "Inter", sans-serif;
     line-height: 1.5;
+}
+
+a,
+a:visited {
+    color: var(--link);
+    text-decoration: none;
+}
+
+a:hover {
+    color: var(--link-hover);
+    text-decoration: underline;
 }
 
 h1, h2, h3, h4 {
@@ -447,7 +462,8 @@ h1, h2, h3, h4 {
     min-width: 0;
 }
 
-.people-name-link {
+.people-name-link,
+.people-name-link:visited {
     font-size: 1.05rem;
     font-weight: bold;
     text-decoration: none;
@@ -455,6 +471,7 @@ h1, h2, h3, h4 {
 }
 
 .people-name-link:hover {
+    color: var(--link-hover);
     text-decoration: underline;
 }
 
@@ -635,6 +652,15 @@ h1, h2, h3, h4 {
 
 .relation-list li:last-child {
     border-bottom: none;
+}
+
+.relation-list a,
+.relation-list a:visited {
+    color: var(--link);
+}
+
+.relation-list a:hover {
+    color: var(--link-hover);
 }
 
 .gallery-grid {
