@@ -1,5 +1,6 @@
 import os
 import uuid
+import json
 from werkzeug.utils import secure_filename
 from flask import Flask, render_template, request, redirect, url_for, jsonify, abort
 from db import(
@@ -30,7 +31,7 @@ from db import(
     )
 from extensions import db, migrate, login_manager, csrf
 
-from models import User, Tree, TreeAccess
+from models import User, Tree, TreeAccess, TreeSnapshot
 from flask_login import login_user, logout_user, login_required, current_user
 from forms import RegisterForm, LoginForm
 
@@ -153,6 +154,7 @@ def allowed_image_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_IMAGE_EXTENSIONS
 #===========================================
 
+#=========================================================================
 def get_person_in_tree_or_404(person_id, tree_id):
     person = get_person(person_id)
     if person is None:
@@ -162,6 +164,165 @@ def get_person_in_tree_or_404(person_id, tree_id):
         abort(404)
 
     return person
+#=========================================================================
+
+#======= snapshot of tree ==================================================================
+def build_tree_snapshot_data(tree_id):
+    tree = Tree.query.filter_by(id=tree_id).first()
+    if tree is None:
+        return None
+
+    conn = get_db()
+
+    persons = conn.execute("""
+        SELECT *
+        FROM persons
+        WHERE tree_id = ?
+        ORDER BY id
+    """, (tree_id,)).fetchall()
+
+    relationships = conn.execute("""
+        SELECT r.person_id, r.relative_id, r.relation_type
+        FROM relationships r
+        JOIN persons p1 ON r.person_id = p1.id
+        JOIN persons p2 ON r.relative_id = p2.id
+        WHERE p1.tree_id = ? AND p2.tree_id = ?
+        ORDER BY r.person_id, r.relative_id
+    """, (tree_id, tree_id)).fetchall()
+
+    person_photos = conn.execute("""
+        SELECT pp.*
+        FROM person_photos pp
+        JOIN persons p ON pp.person_id = p.id
+        WHERE p.tree_id = ?
+        ORDER BY pp.id
+    """, (tree_id,)).fetchall()
+
+    conn.close()
+
+    snapshot_data = {
+        "tree": {
+            "id": tree.id,
+            "title": tree.title
+        },
+        "persons": [dict(p) for p in persons],
+        "relationships": [dict(r) for r in relationships],
+        "person_photos": [dict(pp) for pp in person_photos]
+    }
+
+    return json.dumps(snapshot_data)
+#=========================================================================
+
+#======== restore tree =================================================================
+def restore_tree_from_snapshot(tree_id, snapshot_json):
+    data = json.loads(snapshot_json)
+
+    persons = data.get("persons", [])
+    relationships = data.get("relationships", [])
+    person_photos = data.get("person_photos", [])
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    # удалить связи текущего дерева
+    cur.execute("""
+        DELETE FROM relationships
+        WHERE person_id IN (SELECT id FROM persons WHERE tree_id = ?)
+           OR relative_id IN (SELECT id FROM persons WHERE tree_id = ?)
+    """, (tree_id, tree_id))
+
+    # удалить photos текущего дерева
+    cur.execute("""
+        DELETE FROM person_photos
+        WHERE person_id IN (SELECT id FROM persons WHERE tree_id = ?)
+    """, (tree_id,))
+
+    # удалить persons текущего дерева
+    cur.execute("""
+        DELETE FROM persons
+        WHERE tree_id = ?
+    """, (tree_id,))
+
+    # восстановить persons с теми же id
+    for p in persons:
+        cur.execute("""
+            INSERT INTO persons (
+                id,
+                first_name,
+                middle_name,
+                last_name,
+                maiden_name,
+                birth_date,
+                death_date,
+                birth_year,
+                birth_month,
+                birth_day,
+                death_year,
+                death_month,
+                death_day,
+                gender,
+                notes,
+                photo_filename,
+                tree_id,
+                created_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            p.get("id"),
+            p.get("first_name"),
+            p.get("middle_name"),
+            p.get("last_name"),
+            p.get("maiden_name"),
+            p.get("birth_date"),
+            p.get("death_date"),
+            p.get("birth_year"),
+            p.get("birth_month"),
+            p.get("birth_day"),
+            p.get("death_year"),
+            p.get("death_month"),
+            p.get("death_day"),
+            p.get("gender"),
+            p.get("notes"),
+            p.get("photo_filename"),
+            tree_id,
+            p.get("created_at"),
+        ))
+
+    # восстановить person_photos
+    for pp in person_photos:
+        cur.execute("""
+            INSERT INTO person_photos (
+                id,
+                person_id,
+                filename,
+                uploaded_at
+            )
+            VALUES (?, ?, ?, ?)
+        """, (
+            pp.get("id"),
+            pp.get("person_id"),
+            pp.get("filename"),
+            pp.get("uploaded_at"),
+        ))
+
+    # восстановить relationships
+    for r in relationships:
+        cur.execute("""
+            INSERT INTO relationships (
+                person_id,
+                relative_id,
+                relation_type
+            )
+            VALUES (?, ?, ?)
+        """, (
+            r.get("person_id"),
+            r.get("relative_id"),
+            r.get("relation_type"),
+        ))
+
+    conn.commit()
+    conn.close()
+#=========================================================================
 
 @app.context_processor
 def inject_helpers():
@@ -749,6 +910,85 @@ def delete_tree_route(tree_id):
     return redirect(url_for("dashboard"))
 # -------------------------------------------------------------------
 # ===================================================================
+
+#======= create snapshot ==================================================================
+@app.route("/trees/<int:tree_id>/snapshots/create", methods=["POST"])
+@login_required
+def create_tree_snapshot(tree_id):
+    tree = Tree.query.filter_by(id=tree_id, owner_user_id=current_user.id).first()
+    if tree is None:
+        return "Tree not found", 404
+
+    snapshot_json = build_tree_snapshot_data(tree.id)
+    if snapshot_json is None:
+        return "Could not create snapshot", 400
+
+    snapshot = TreeSnapshot(
+        tree_id=tree.id,
+        created_by_user_id=current_user.id,
+        title=f"{tree.title} snapshot",
+        snapshot_json=snapshot_json
+    )
+
+    db.session.add(snapshot)
+    db.session.commit()
+
+    return redirect(url_for("list_tree_snapshots", tree_id=tree.id))
+# =========================================================================================
+
+#======= list snapshots ==================================================================
+@app.route("/trees/<int:tree_id>/snapshots")
+@login_required
+def list_tree_snapshots(tree_id):
+    tree = Tree.query.filter_by(id=tree_id, owner_user_id=current_user.id).first()
+    if tree is None:
+        return "Tree not found", 404
+
+    snapshots = TreeSnapshot.query.filter_by(tree_id=tree.id) \
+        .order_by(TreeSnapshot.created_at.desc()) \
+        .all()
+
+    return render_template(
+        "tree_snapshots.html",
+        tree=tree,
+        snapshots=snapshots
+    )
+# =========================================================================================
+
+#======= restore snapshot ==================================================================
+@app.route("/trees/<int:tree_id>/snapshots/<int:snapshot_id>/restore", methods=["POST"])
+@login_required
+def restore_tree_snapshot(tree_id, snapshot_id):
+    tree = Tree.query.filter_by(id=tree_id, owner_user_id=current_user.id).first()
+    if tree is None:
+        return "Tree not found", 404
+
+    snapshot = TreeSnapshot.query.filter_by(id=snapshot_id, tree_id=tree.id).first()
+    if snapshot is None:
+        return "Snapshot not found", 404
+
+    restore_tree_from_snapshot(tree.id, snapshot.snapshot_json)
+
+    return redirect(url_for("tree", tree_id=tree.id))
+# =========================================================================================
+
+# ======= delelte snapshot ==================================================================================
+@app.route("/trees/<int:tree_id>/snapshots/<int:snapshot_id>/delete", methods=["POST"])
+@login_required
+def delete_tree_snapshot(tree_id, snapshot_id):
+    tree = Tree.query.filter_by(id=tree_id, owner_user_id=current_user.id).first()
+    if tree is None:
+        return "Tree not found", 404
+
+    snapshot = TreeSnapshot.query.filter_by(id=snapshot_id, tree_id=tree.id).first()
+    if snapshot is None:
+        return "Snapshot not found", 404
+
+    db.session.delete(snapshot)
+    db.session.commit()
+
+    return redirect(url_for("list_tree_snapshots", tree_id=tree.id))
+# =========================================================================================
 
 # ====== manage access rout =============================================================
 @app.route("/trees/<int:tree_id>/access", methods=["GET", "POST"])

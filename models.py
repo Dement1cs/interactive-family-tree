@@ -41,3 +41,16 @@ class TreeAccess(db.Model):
     __table_args__ = (
         db.UniqueConstraint("tree_id", "user_id", name="uq_tree_access_tree_user"),
     )
+
+class TreeSnapshot(db.Model):
+    __tablename__ = "tree_snapshots"
+
+    id = db.Column(db.Integer, primary_key=True)
+    tree_id = db.Column(db.Integer, db.ForeignKey("trees.id"), nullable=False)
+    created_by_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    title = db.Column(db.String(255), nullable=False)
+    snapshot_json = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    tree = db.relationship("Tree", backref="snapshots")
+    created_by = db.relationship("User")

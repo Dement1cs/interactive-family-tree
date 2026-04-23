@@ -130,6 +130,20 @@ a:hover {
     text-decoration: underline;
 }
 
+.site-brand-link,
+.site-brand-link:visited,
+.site-nav-link,
+.site-nav-link:visited {
+    color: var(--text);
+    text-decoration: none;
+}
+
+.site-brand-link:hover,
+.site-nav-link:hover {
+    color: var(--text);
+    text-decoration: none;
+}
+
 h1, h2, h3, h4 {
     font-weight: 650;
 }
@@ -404,7 +418,8 @@ h1, h2, h3, h4 {
 
 .btn,
 .btn-danger,
-.btn-link {
+.btn-link,
+.btn-link:visited {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -420,6 +435,7 @@ h1, h2, h3, h4 {
 
 .btn:hover,
 .btn-link:hover {
+    color: var(--text);
     background: var(--hover);
     text-decoration: none;
 }
@@ -663,7 +679,9 @@ h1, h2, h3, h4 {
 }
 
 .relation-list a,
-.relation-list a:visited {
+.relation-list a:visited,
+.people-meta a,
+.people-meta a:visited {
     color: var(--link);
 }
 

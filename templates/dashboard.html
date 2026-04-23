@@ -32,6 +32,7 @@
                         <a class="btn-link" href="{{ url_for('persons', tree_id=t.id) }}">People</a>
                         <a class="btn-link" href="{{ url_for('edit_tree', tree_id=t.id) }}">Rename</a>
                         <a class="btn-link" href="{{ url_for('manage_tree_access', tree_id=t.id) }}">Manage access</a>
+                        <a class="btn-link" href="{{ url_for('list_tree_snapshots', tree_id=t.id) }}">Snapshots</a>
 
                         <form action="{{ url_for('delete_tree_route', tree_id=t.id) }}"
                               method="post"
