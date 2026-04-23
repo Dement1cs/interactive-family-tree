@@ -126,13 +126,26 @@ MONTH_NAMES = {
 }
 
 def format_partial_date(year=None, month=None, day=None, fallback=None):
+    month_name = MONTH_NAMES.get(int(month), str(month)) if month else None
+
+    if day and month and year:
+        return f"{int(day)} {month_name} {year}"
+
+    if month and year:
+        return f"{month_name} {year}"
+
     if year:
-        if month:
-            month_name = MONTH_NAMES.get(int(month), str(month))
-            if day:
-                return f"{int(day)} {month_name} {year}"
-            return f"{month_name} {year}"
         return str(year)
+
+    if day and month:
+        return f"{int(day)} {month_name}"
+
+    if month:
+        return str(month_name)
+
+    if day:
+        return str(day)
+
     return fallback or ""
 
 #======image helper function================
@@ -228,7 +241,14 @@ def tree():
 
     current_tree = get_current_user_tree_or_404(tree_id)
 
-    return render_template("tree.html", tree_id=tree_id, current_tree=current_tree)
+    tree_title = current_tree.title if current_tree and current_tree.title else "family-tree"
+
+    return render_template(
+        "tree.html",
+        tree_id=tree_id,
+        current_tree=current_tree,
+        tree_title=tree_title
+    )
 # =========================================================
 
 # ====== Список всех людей =================================

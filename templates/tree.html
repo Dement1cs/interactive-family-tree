@@ -11,6 +11,10 @@
                 <a class="btn-link" href="{{ url_for('persons', tree_id=tree_id) }}">Manage people</a>
             {% endif %}
         </div>
+
+        <div class="person-topbar-right">
+            <button type="button" class="btn" id="exportPngBtn">Export PNG</button>
+        </div>
     </div>
 </div>
 
@@ -34,6 +38,7 @@
 
 <script>
   window.PERSON_URL_TEMPLATE = "{{ url_for('person_detail', person_id=0, tree_id=tree_id) }}";
+  window.CURRENT_TREE_TITLE = {{ tree_title|tojson }};
 </script>
 
 <script src="{{ url_for('static', filename='js/tree.js') }}"></script>

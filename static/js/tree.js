@@ -139,8 +139,21 @@
       return String(year);
     }
 
-    return fallback || "";
+    if (month) {
+      const mm = String(month).padStart(2, "0");
+      if (day) {
+        const dd = String(day).padStart(2, "0");
+        return `${dd}.${mm}`;
+      }
+    return mm;
   }
+
+  if (day) {
+    return String(day);
+  }
+
+  return fallback || "";
+}
 
   try {
     // Берём данные дерева с сервера
@@ -290,5 +303,34 @@
 
   } catch (err) {
     console.error("Tree rendering error:", err);
+  }
+
+  const exportBtn = document.getElementById("exportPngBtn");
+
+  if (exportBtn) {
+    exportBtn.addEventListener("click", () => {
+      try {
+        const imageData = diagram.makeImageData({
+          background: "white",
+          scale: 1
+        });
+
+        const link = document.createElement("a");
+        const treeTitle =
+          (window.CURRENT_TREE_TITLE || "family-tree")
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, "") || "family-tree";
+
+        link.href = imageData;
+        link.download = `${treeTitle}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (err) {
+        console.error("PNG export failed:", err);
+        alert("Could not export the tree as PNG.");
+      }
+    });
   }
 })();
