@@ -10,6 +10,10 @@
         {{ 'Brother' if g == 'male' else ('Sister' if g == 'female' else 'Sibling') }}
     {%- elif kind == 'grandparent' -%}
         {{ 'Grandfather' if g == 'male' else ('Grandmother' if g == 'female' else 'Grandparent') }}
+    {%- elif kind == 'great_grandparent' -%}
+        {{ 'Great-grandfather' if g == 'male' else ('Great-grandmother' if g == 'female' else 'Great-grandparent') }}
+    {%- elif kind == 'great_great_grandparent' -%}
+        {{ 'Great-great-grandfather' if g == 'male' else ('Great-great-grandmother' if g == 'female' else 'Great-great-grandparent') }}
     {%- else -%}
         Person
     {%- endif -%}
@@ -141,7 +145,7 @@
                             <div>
                                 {{ role_label('parent', p['gender']) }}:
                                 <a href="{{ url_for('person_detail', person_id=p['id'], tree_id=tree_id) }}">
-                                    {{ p['first_name'] }} {{ p['last_name'] }}
+                                    {{ p['first_name'] }}{% if p['last_name'] %} {{ p['last_name'] }}{% endif %}
                                 </a>
                             </div>
 
@@ -170,7 +174,7 @@
                             <div>
                                 {{ role_label('sibling', s['gender']) }}:
                                 <a href="{{ url_for('person_detail', person_id=s['id'], tree_id=tree_id) }}">
-                                    {{ s['first_name'] }} {{ s['last_name'] }}
+                                    {{ s['first_name'] }}{% if s['last_name'] %} {{ s['last_name'] }}{% endif %}
                                 </a>
                             </div>
                         </li>
@@ -188,7 +192,7 @@
                             <div>
                                 {{ role_label('child', c['gender']) }}:
                                 <a href="{{ url_for('person_detail', person_id=c['id'], tree_id=tree_id) }}">
-                                    {{ c['first_name'] }} {{ c['last_name'] }}
+                                    {{ c['first_name'] }}{% if c['last_name'] %} {{ c['last_name'] }}{% endif %}
                                 </a>
                             </div>
 
@@ -216,7 +220,7 @@
                         <li>
                             <div>
                                 <a href="{{ url_for('person_detail', person_id=s['id'], tree_id=tree_id) }}">
-                                    {{ s["first_name"] }} {{ s["last_name"] or "" }}
+                                    {{ s["first_name"] }}{% if s["last_name"] %} {{ s["last_name"] }}{% endif %}
                                 </a>
                             </div>
 
@@ -245,7 +249,7 @@
                             <div>
                                 {{ role_label('grandparent', g['gender']) }}:
                                 <a href="{{ url_for('person_detail', person_id=g['id'], tree_id=tree_id) }}">
-                                    {{ g['first_name'] }} {{ g['last_name'] }}
+                                    {{ g['first_name'] }}{% if g['last_name'] %} {{ g['last_name'] }}{% endif %}
                                 </a>
                             </div>
                         </li>
@@ -254,7 +258,62 @@
             </div>
         {% endif %}
 
-        {% if not parents and not siblings and not children and not spouses and not grandparents %}
+        {% if great_grandparents and great_grandparents|length > 0 %}
+            <div class="relation-group">
+                <h4>Great-grandparents</h4>
+                <ul class="relation-list">
+                    {% for g in great_grandparents %}
+                        <li>
+                            <div>
+                                {{ role_label('great_grandparent', g['gender']) }}:
+                                <a href="{{ url_for('person_detail', person_id=g['id'], tree_id=tree_id) }}">
+                                    {{ g['first_name'] }}{% if g['last_name'] %} {{ g['last_name'] }}{% endif %}
+                                </a>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+
+        {% if great_great_grandparents and great_great_grandparents|length > 0 %}
+            <div class="relation-group">
+                <h4>Great-great-grandparents</h4>
+                <ul class="relation-list">
+                    {% for g in great_great_grandparents %}
+                        <li>
+                            <div>
+                                {{ role_label('great_great_grandparent', g['gender']) }}:
+                                <a href="{{ url_for('person_detail', person_id=g['id'], tree_id=tree_id) }}">
+                                    {{ g['first_name'] }}{% if g['last_name'] %} {{ g['last_name'] }}{% endif %}
+                                </a>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+
+        {% if ancestors and ancestors|length > 0 %}
+            <div class="relation-group">
+                <h4>Ancestors</h4>
+                <ul class="relation-list">
+                    {% for a in ancestors %}
+                        <li>
+                            <div>
+                                <a href="{{ url_for('person_detail', person_id=a['id'], tree_id=tree_id) }}">
+                                    {{ a['first_name'] }}{% if a['last_name'] %} {{ a['last_name'] }}{% endif %}
+                                </a>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+
+        {% if not parents and not siblings and not children and not spouses
+            and not grandparents and not great_grandparents
+            and not great_great_grandparents and not ancestors %}
             <p class="muted">No relations linked yet.</p>
         {% endif %}
     </div>

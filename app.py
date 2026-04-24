@@ -27,6 +27,9 @@ from db import(
     get_spouses,
     get_siblings,
     get_grandparents,
+    get_great_grandparents,
+    get_great_great_grandparents,
+    get_ancestors,
     search_persons
     )
 from extensions import db, migrate, login_manager, csrf
@@ -489,6 +492,9 @@ def person_detail(person_id):
     spouses = get_spouses(person_id)
     siblings = get_siblings(person_id)
     grandparents = get_grandparents(person_id)
+    great_grandparents = get_great_grandparents(person_id)
+    great_great_grandparents = get_great_great_grandparents(person_id)
+    ancestors = get_ancestors(person_id)
 
     return render_template(
         "person_detail.html",
@@ -498,6 +504,9 @@ def person_detail(person_id):
         spouses=spouses,
         siblings=siblings,
         grandparents=grandparents,
+        great_grandparents=great_grandparents,
+        great_great_grandparents=great_great_grandparents,
+        ancestors=ancestors,
         photos=photos,
         tree_id=tree_id,
         tree_role=tree_role

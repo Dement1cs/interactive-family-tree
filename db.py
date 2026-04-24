@@ -300,7 +300,7 @@ def add_relationship(person_id, relative_id, relation_type):
     conn.close()
 # ==============================   
 
-# ======== нет дубликата====================== 
+# ======== нет дубликата ====================== 
 def relationship_exists(person_id, relative_id, relation_type):
     conn = get_db()
     cur = conn.cursor()
@@ -471,3 +471,58 @@ def get_grandparents(person_id):
             seen[gp["id"]] = gp
 
     return list(seen.values())
+
+def get_ancestors_by_level(person_id, level):
+    if level < 1:
+        return []
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    current_ids = {person_id}
+    rows = []
+
+    for _ in range(level):
+        if not current_ids:
+            conn.close()
+            return []
+
+        placeholders = ",".join("?" for _ in current_ids)
+
+        rows = cur.execute(f"""
+            SELECT DISTINCT p.*
+            FROM relationships r
+            JOIN persons p ON p.id = r.person_id
+            WHERE r.relation_type = 'parent'
+              AND r.relative_id IN ({placeholders})
+        """, tuple(current_ids)).fetchall()
+
+        current_ids = {row["id"] for row in rows}
+
+    conn.close()
+    return rows
+
+
+def get_great_grandparents(person_id):
+    return get_ancestors_by_level(person_id, 3)
+
+
+def get_great_great_grandparents(person_id):
+    return get_ancestors_by_level(person_id, 4)
+
+
+def get_ancestors(person_id, min_level=5, max_level=10):
+    conn = get_db()
+    conn.close()
+
+    all_ancestors = []
+    seen_ids = set()
+
+    for level in range(min_level, max_level + 1):
+        rows = get_ancestors_by_level(person_id, level)
+        for row in rows:
+            if row["id"] not in seen_ids:
+                seen_ids.add(row["id"])
+                all_ancestors.append(row)
+
+    return all_ancestors
