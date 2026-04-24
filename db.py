@@ -553,6 +553,62 @@ def get_nephews_nieces(person_id):
     return rows
 # =======================================================================
 
+# ===== cousins ==================================================================
+def get_cousins(person_id):
+    conn = get_db()
+    cur = conn.cursor()
+
+    # uncles/aunts = siblings of parents
+    parents = cur.execute("""
+        SELECT DISTINCT p.*
+        FROM relationships r
+        JOIN persons p ON p.id = r.person_id
+        WHERE r.relation_type = 'parent'
+          AND r.relative_id = ?
+    """, (person_id,)).fetchall()
+
+    if not parents:
+        conn.close()
+        return []
+
+    parent_ids = [p["id"] for p in parents]
+    placeholders = ",".join("?" for _ in parent_ids)
+
+    uncles_aunts = cur.execute(f"""
+        SELECT DISTINCT s.*
+        FROM relationships rp1
+        JOIN relationships rp2
+          ON rp1.person_id = rp2.person_id
+        JOIN persons s
+          ON s.id = rp2.relative_id
+        WHERE rp1.relation_type = 'parent'
+          AND rp2.relation_type = 'parent'
+          AND rp1.relative_id IN ({placeholders})
+          AND rp2.relative_id != rp1.relative_id
+    """, tuple(parent_ids)).fetchall()
+
+    if not uncles_aunts:
+        conn.close()
+        return []
+
+    ua_ids = [u["id"] for u in uncles_aunts]
+    ua_placeholders = ",".join("?" for _ in ua_ids)
+
+    cousins = cur.execute(f"""
+        SELECT DISTINCT p.*
+        FROM relationships r
+        JOIN persons p ON p.id = r.relative_id
+        WHERE r.relation_type = 'parent'
+          AND r.person_id IN ({ua_placeholders})
+    """, tuple(ua_ids)).fetchall()
+
+    # на всякий случай убрать самого человека, если данные странные
+    result = [c for c in cousins if c["id"] != person_id]
+
+    conn.close()
+    return result
+# =======================================================================
+
 def get_ancestors_by_level(person_id, level):
     if level < 1:
         return []
