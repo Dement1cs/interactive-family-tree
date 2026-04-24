@@ -27,6 +27,7 @@ from db import(
     get_spouses,
     get_siblings,
     get_uncles_aunts,
+    get_nephews_nieces,
     get_grandparents,
     get_great_grandparents,
     get_great_great_grandparents,
@@ -493,6 +494,7 @@ def person_detail(person_id):
     spouses = get_spouses(person_id)
     siblings = get_siblings(person_id)
     uncles_aunts = get_uncles_aunts(person_id)
+    nephews_nieces = get_nephews_nieces(person_id)
     grandparents = get_grandparents(person_id)
     great_grandparents = get_great_grandparents(person_id)
     great_great_grandparents = get_great_great_grandparents(person_id)
@@ -506,6 +508,7 @@ def person_detail(person_id):
         spouses=spouses,
         siblings=siblings,
         uncles_aunts=uncles_aunts,
+        nephews_nieces=nephews_nieces,
         grandparents=grandparents,
         great_grandparents=great_grandparents,
         great_great_grandparents=great_great_grandparents,

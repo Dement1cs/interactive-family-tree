@@ -515,6 +515,44 @@ def get_uncles_aunts(person_id):
     return result
 # =======================================================================
 
+# ======== nephews | nieces ===============================================================
+def get_nephews_nieces(person_id):
+    conn = get_db()
+    cur = conn.cursor()
+
+    # siblings текущего человека
+    siblings = cur.execute("""
+        SELECT DISTINCT s.*
+        FROM relationships rp1
+        JOIN relationships rp2
+          ON rp1.person_id = rp2.person_id
+        JOIN persons s
+          ON s.id = rp2.relative_id
+        WHERE rp1.relation_type = 'parent'
+          AND rp2.relation_type = 'parent'
+          AND rp1.relative_id = ?
+          AND rp2.relative_id != rp1.relative_id
+    """, (person_id,)).fetchall()
+
+    if not siblings:
+        conn.close()
+        return []
+
+    sibling_ids = [s["id"] for s in siblings]
+    placeholders = ",".join("?" for _ in sibling_ids)
+
+    rows = cur.execute(f"""
+        SELECT DISTINCT p.*
+        FROM relationships r
+        JOIN persons p ON p.id = r.relative_id
+        WHERE r.relation_type = 'parent'
+          AND r.person_id IN ({placeholders})
+    """, tuple(sibling_ids)).fetchall()
+
+    conn.close()
+    return rows
+# =======================================================================
+
 def get_ancestors_by_level(person_id, level):
     if level < 1:
         return []
