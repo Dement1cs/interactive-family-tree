@@ -98,7 +98,7 @@
   // Связь "человек -> union" (подключение супругов к точке)
   diagram.linkTemplateMap.add("Spouse",
     $(go.Link,
-      { routing: go.Link.Normal, curviness: 0 }, // обычная линия
+      { routing: go.Link.Normal, curviness: 6 }, // обычная линия
       $(go.Shape, { strokeWidth: 1, stroke: "#888" })
     )
   );

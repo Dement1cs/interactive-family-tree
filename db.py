@@ -472,6 +472,49 @@ def get_grandparents(person_id):
 
     return list(seen.values())
 
+# ========= UNCLE | AUNTS ==================================================
+def get_uncles_aunts(person_id):
+    conn = get_db()
+    cur = conn.cursor()
+
+    # родители текущего человека
+    parents = cur.execute("""
+        SELECT DISTINCT p.*
+        FROM relationships r
+        JOIN persons p ON p.id = r.person_id
+        WHERE r.relation_type = 'parent'
+          AND r.relative_id = ?
+    """, (person_id,)).fetchall()
+
+    if not parents:
+        conn.close()
+        return []
+
+    parent_ids = [p["id"] for p in parents]
+    placeholders = ",".join("?" for _ in parent_ids)
+
+    # брать siblings родителей:
+    # люди, у которых есть хотя бы один общий parent с любым из родителей текущего человека
+    rows = cur.execute(f"""
+        SELECT DISTINCT s.*
+        FROM relationships rp1
+        JOIN relationships rp2
+          ON rp1.person_id = rp2.person_id
+        JOIN persons s
+          ON s.id = rp2.relative_id
+        WHERE rp1.relation_type = 'parent'
+          AND rp2.relation_type = 'parent'
+          AND rp1.relative_id IN ({placeholders})
+          AND rp2.relative_id != rp1.relative_id
+    """, tuple(parent_ids)).fetchall()
+
+    # убрать самих родителей, если вдруг попали
+    result = [row for row in rows if row["id"] not in parent_ids]
+
+    conn.close()
+    return result
+# =======================================================================
+
 def get_ancestors_by_level(person_id, level):
     if level < 1:
         return []

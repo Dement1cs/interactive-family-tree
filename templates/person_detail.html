@@ -240,6 +240,24 @@
             </div>
         {% endif %}
 
+        {% if uncles_aunts and uncles_aunts|length > 0 %}
+            <div class="relation-group">
+                <h4>Uncles / Aunts</h4>
+                <ul class="relation-list">
+                    {% for u in uncles_aunts %}
+                        <li>
+                            <div>
+                                {{ 'Uncle' if u['gender'] == 'male' else ('Aunt' if u['gender'] == 'female' else 'Relative') }}:
+                                <a href="{{ url_for('person_detail', person_id=u['id'], tree_id=tree_id) }}">
+                                    {{ u['first_name'] }}{% if u['last_name'] %} {{ u['last_name'] }}{% endif %}
+                                </a>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+
         {% if grandparents and grandparents|length > 0 %}
             <div class="relation-group">
                 <h4>Grandparents</h4>
@@ -313,7 +331,8 @@
 
         {% if not parents and not siblings and not children and not spouses
             and not grandparents and not great_grandparents
-            and not great_great_grandparents and not ancestors %}
+            and not great_great_grandparents and not ancestors
+            and not uncles_aunts %}
             <p class="muted">No relations linked yet.</p>
         {% endif %}
     </div>
