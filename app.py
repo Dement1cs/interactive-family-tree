@@ -426,10 +426,43 @@ def persons():
     if not tree_id:
         return redirect(url_for("dashboard"))
 
+    sort = request.args.get("sort", "created_desc")
+
     current_tree = get_current_user_tree_or_404(tree_id)
     people = get_all_persons(tree_id)
 
-    return render_template("persons.html", people=people, tree_id=tree_id, current_tree=current_tree)
+    if sort == "name_asc":
+        people = sorted(
+            people,
+            key=lambda p: (
+                (p["first_name"] or "").lower(),
+                (p["middle_name"] or "").lower(),
+                (p["last_name"] or "").lower()
+            )
+        )
+    elif sort == "name_desc":
+        people = sorted(
+            people,
+            key=lambda p: (
+                (p["first_name"] or "").lower(),
+                (p["middle_name"] or "").lower(),
+                (p["last_name"] or "").lower()
+            ),
+            reverse=True
+        )
+    elif sort == "created_asc":
+        people = sorted(people, key=lambda p: p["id"])
+    else:
+        people = sorted(people, key=lambda p: p["id"], reverse=True)
+        sort = "created_desc"
+
+    return render_template(
+        "persons.html",
+        people=people,
+        tree_id=tree_id,
+        current_tree=current_tree,
+        current_sort=sort
+    )
 # ==========================================================
 
 # ====== ДОБАВИТЬ ЧЕЛОВЕКА =================================
