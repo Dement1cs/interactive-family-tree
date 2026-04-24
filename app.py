@@ -1177,7 +1177,7 @@ def api_tree():
             birth_date, death_date,
             birth_year, birth_month, birth_day,
             death_year, death_month, death_day,
-            notes, tree_id
+            gender, notes, tree_id, photo_filename
         FROM persons
         WHERE tree_id = ?
     """, (tree_id,)).fetchall()

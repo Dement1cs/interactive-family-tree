@@ -14,48 +14,110 @@
     // Алгоритм авто-раскладки: строит граф слоями сверху вниз
     layout: $(go.LayeredDigraphLayout, {
       direction: 270,  // растет снизу вверх. 0 - слева на право, 90 сверху вниз, 180 с права на лево, 270 снизу вверх
-      layerSpacing: 50, // расстояние между слоями
-      columnSpacing: 30 // расстояние между колонками
+      layerSpacing: 70, // расстояние между слоями
+      columnSpacing: 50 // расстояние между колонками
     })
   });
 
   // --- Шаблон узла "человек" (прямоугольная карточка) ---
   diagram.nodeTemplate =
-    $(go.Node, "Auto", // создает нод через $
+    $(go.Node, "Auto",
       {
         click: (e, node) => {
           const id = node.data.key;
           const url = window.PERSON_URL_TEMPLATE.replace("/0?", `/${id}?`);
           window.location.href = url;
-        }
+        },
+        cursor: "pointer"
       },
 
-      // Фон карточки (скруглённый прямоугольник)
-      $(go.Shape, "RoundedRectangle", // Геометрическая фигура прямоугольник со скруглением
-        { fill: "white", stroke: "#d0d0d0", strokeWidth: 1 } // заливка, цвет обводки, толщина обводки
+      $(go.Shape, "RoundedRectangle",
+        {
+          strokeWidth: 1.2,
+          parameter1: 10
+        },
+        new go.Binding("fill", "gender", g => {
+          if (g === "male") return "#dbeafe";
+          if (g === "female") return "#fce7f3";
+          return "#f3f4f6";
+        }),
+        new go.Binding("stroke", "gender", g => {
+          if (g === "male") return "#93c5fd";
+          if (g === "female") return "#f9a8d4";
+          return "#d1d5db";
+        })
       ),
 
-      // Внутри карточки — таблица из 2 строк: имя + даты
-      $(go.Panel, "Table", { margin: 10, defaultAlignment: go.Spot.Left }, // Контейнер, который умеет раскладывать дочерние элементы. margin внутренний отступ панели от границ Node. выравнивать к левому краю
-        // Строка 0: имя
-        $(go.TextBlock, 
+      $(go.Panel, "Table",
+        {
+          margin: 10,
+          defaultAlignment: go.Spot.Left
+        },
+
+        // ===== Avatar block =====
+        $(go.Panel, "Spot",
           {
             row: 0,
+            column: 0,
+            rowSpan: 3,
+            margin: new go.Margin(0, 12, 0, 0),
+            width: 46,
+            height: 46
+          },
+
+          $(go.Shape, "RoundedRectangle",
+            {
+              width: 46,
+              height: 46,
+              parameter1: 8,
+              fill: "#eef2f7",
+              stroke: "#cbd5e1"
+            }
+          ),
+
+          $(go.Picture,
+            {
+              width: 46,
+              height: 46,
+              imageStretch: go.GraphObject.UniformToFill
+            },
+            new go.Binding("source", "photoSrc"),
+            new go.Binding("visible", "photoSrc", v => !!v)
+          ),
+
+          $(go.TextBlock,
+            {
+              font: "bold 16px sans-serif",
+              stroke: "#475569"
+            },
+            new go.Binding("text", "initials"),
+            new go.Binding("visible", "photoSrc", v => !v)
+          )
+        ),
+
+        // ===== Name =====
+        $(go.TextBlock,
+          {
+            row: 0,
+            column: 1,
             font: "bold 14px sans-serif",
-            stroke: "#111", //цвет текста
-            margin: new go.Margin(0, 0, 6, 0), //отделить имя от дат
-            maxSize: new go.Size(200, NaN), //Ограничение размера текстового блока. по высоте нет ограничений
-            overflow: go.TextBlock.OverflowEllipsis // если текс не поместился будет ...
+            stroke: "#111",
+            margin: new go.Margin(0, 0, 6, 0),
+            maxSize: new go.Size(190, NaN),
+            overflow: go.TextBlock.OverflowEllipsis
           },
           new go.Binding("text", "fullName")
         ),
 
+        // ===== Maiden name =====
         $(go.TextBlock,
           {
             row: 1,
+            column: 1,
             font: "11px sans-serif",
             stroke: "#555",
-            maxSize: new go.Size(200, NaN),
+            margin: new go.Margin(0, 0, 4, 0),
+            maxSize: new go.Size(190, NaN),
             overflow: go.TextBlock.OverflowEllipsis,
             visible: false
           },
@@ -63,16 +125,17 @@
           new go.Binding("visible", "maidenLine", v => !!v)
         ),
 
-        // Строка 1: даты жизни
+        // ===== Dates =====
         $(go.TextBlock,
           {
             row: 2,
+            column: 1,
             font: "12px sans-serif",
             stroke: "#666",
-            maxSize: new go.Size(200, NaN),
+            maxSize: new go.Size(190, NaN),
             overflow: go.TextBlock.OverflowEllipsis
           },
-          new go.Binding("text", "lifeLine") // взять текст из node.data.lifeLine
+          new go.Binding("text", "lifeLine")
         )
       )
     );
@@ -88,7 +151,13 @@
 
       // Сама точка
       $(go.Shape, "Circle",
-        { width: 8, height: 8, fill: "#999", stroke: null }
+        {
+          width: 10,
+          height: 10,
+          fill: "#a1a1aa",
+          stroke: "#27272a",
+          strokeWidth: 1
+        }
       )
     )
   );
@@ -98,16 +167,28 @@
   // Связь "человек -> union" (подключение супругов к точке)
   diagram.linkTemplateMap.add("Spouse",
     $(go.Link,
-      { routing: go.Link.Normal, curviness: 6 }, // обычная линия
-      $(go.Shape, { strokeWidth: 1, stroke: "#888" })
+      {
+        routing: go.Link.Normal,
+        corner: 20
+      },
+      $(go.Shape, {
+        strokeWidth: 2,
+        stroke: "#8b90a0"
+      })
     )
   );
 
   // Связь "union -> ребёнок" (ветка к детям)
   diagram.linkTemplateMap.add("ParentChild",
     $(go.Link,
-      { routing: go.Link.Orthogonal, corner: 6 }, // линия с углами + скругление
-      $(go.Shape, { strokeWidth: 1, stroke: "#999" })
+      {
+        routing: go.Link.Orthogonal,
+        corner: 20
+      },
+      $(go.Shape, {
+        strokeWidth: 2,
+        stroke: "#8b90a0"
+      })
     )
   );
 
@@ -195,6 +276,14 @@
       );
 
       const lifeLine = [birthDisplay, deathDisplay].filter(Boolean).join(" - ");
+
+      const initials = (
+        `${(p.first_name || "").charAt(0)}${(p.last_name || "").charAt(0)}`
+      ).toUpperCase() || "?";
+
+      const photoSrc = p.photo_filename
+        ? `/static/uploads/${p.photo_filename}`
+        : "";
       
       // key обязателен: это id узла
       return {
@@ -202,7 +291,10 @@
         category: "",
         fullName,
         maidenLine,
-        lifeLine
+        lifeLine,
+        initials,
+        photoSrc,
+        gender: (p.gender || "").toLowerCase()
       };
     });
 
@@ -300,6 +392,7 @@
 
     // Авто-зум, чтобы всё поместилось на экран
     diagram.zoomToFit();
+    diagram.scale *= 0.9;
 
   } catch (err) {
     console.error("Tree rendering error:", err);
