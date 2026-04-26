@@ -1,28 +1,53 @@
+// =========================================================
+// Tree rendering script
+// =========================================================
 (async function () {
-  // Если GoJS не подключён (нет глобальной переменной go) — дальше нет смысла
+  // Make sure GoJS is loaded before doing anything else
+  // Убедиться, что GoJS загружен перед выполнением остального кода
   if (typeof go === "undefined") {
     console.error("GoJS is not loaded");
     return;
   }
 
-  // Cокращение: вместо go.GraphObject.make пишем просто $
+  // Short alias for go.GraphObject.make
+  // Короткое сокращение для go.GraphObject.make
   const $ = go.GraphObject.make;
 
-  // Создаём диаграмму внутри <div id="diagramDiv">
-  const diagram = $(go.Diagram, "diagramDiv", { // создает диаграмму в div
-    "undoManager.isEnabled": true, // дает память для CTRL Z/Y
-    // Алгоритм авто-раскладки: строит граф слоями сверху вниз
+
+
+
+  // =========================================================
+  // Diagram initialization
+  // =========================================================
+
+  // Create the main diagram inside the diagramDiv container
+  // Создать основную диаграмму внутри контейнера diagramDiv
+  const diagram = $(go.Diagram, "diagramDiv", {
+    "undoManager.isEnabled": true,
+
+    // Use layered layout so generations are arranged clearly
+    // Использовать layered layout, чтобы поколения располагались наглядно
     layout: $(go.LayeredDigraphLayout, {
-      direction: 270,  // растет снизу вверх. 0 - слева на право, 90 сверху вниз, 180 с права на лево, 270 снизу вверх
-      layerSpacing: 70, // расстояние между слоями
-      columnSpacing: 50 // расстояние между колонками
+      direction: 270,      // bottom to top / снизу вверх
+      layerSpacing: 70,    // distance between generations / расстояние между поколениями
+      columnSpacing: 50    // distance between nodes in one level / расстояние между узлами одного уровня
     })
   });
 
-  // --- Шаблон узла "человек" (прямоугольная карточка) ---
+
+
+
+  // =========================================================
+  // Node templates
+  // =========================================================
+
+  // Person node template
+  // Шаблон узла человека
   diagram.nodeTemplate =
     $(go.Node, "Auto",
       {
+        // Open the person's profile page when a node is clicked
+        // Открыть страницу профиля человека при клике по узлу
         click: (e, node) => {
           const id = node.data.key;
           const url = window.PERSON_URL_TEMPLATE.replace("/0?", `/${id}?`);
@@ -31,6 +56,8 @@
         cursor: "pointer"
       },
 
+      // Main card background
+      // Основной фон карточки
       $(go.Shape, "RoundedRectangle",
         {
           strokeWidth: 1.2,
@@ -48,13 +75,16 @@
         })
       ),
 
+      // Table layout inside the person card
+      // Табличное размещение элементов внутри карточки человека
       $(go.Panel, "Table",
         {
           margin: 10,
           defaultAlignment: go.Spot.Left
         },
 
-        // ===== Avatar block =====
+        // Avatar area: profile photo or initials fallback
+        // Область аватарки: фото профиля или инициалы, если фото нет
         $(go.Panel, "Spot",
           {
             row: 0,
@@ -95,7 +125,8 @@
           )
         ),
 
-        // ===== Name =====
+        // Full name
+        // Полное имя
         $(go.TextBlock,
           {
             row: 0,
@@ -109,7 +140,8 @@
           new go.Binding("text", "fullName")
         ),
 
-        // ===== Maiden name =====
+        // Maiden name if present
+        // Девичья фамилия, если указана
         $(go.TextBlock,
           {
             row: 1,
@@ -125,7 +157,8 @@
           new go.Binding("visible", "maidenLine", v => !!v)
         ),
 
-        // ===== Dates =====
+        // Life dates
+        // Даты жизни
         $(go.TextBlock,
           {
             row: 2,
@@ -140,16 +173,14 @@
       )
     );
 
-  // --- Шаблон узла "Union" (маленькая точка — союз/пара) ---
+  // Union node template: small point for a couple / parent union
+  // Шаблон union-узла: маленькая точка для пары / союза родителей
   diagram.nodeTemplateMap.add("Union",
-    $(go.Node, "Spot", // spot - тип панели. точка
+    $(go.Node, "Spot",
       {
-        selectable: false, // Нельзя выделить точку кликом
-        //movable: false, // Нельзя перетаскивать union-ноду мышкой
-        layerName: "Background" // рисовать этот узел на фоновом слое
+        selectable: false,
+        layerName: "Background"
       },
-
-      // Сама точка
       $(go.Shape, "Circle",
         {
           width: 10,
@@ -162,9 +193,16 @@
     )
   );
 
-  // --- Шаблоны линий (связей) ---
 
-  // Связь "человек -> union" (подключение супругов к точке)
+
+
+
+  // =========================================================
+  // Link templates
+  // =========================================================
+
+  // Link from person to union node (spouse connection)
+  // Линия от человека к union-узлу (связь супругов)
   diagram.linkTemplateMap.add("Spouse",
     $(go.Link,
       {
@@ -178,7 +216,8 @@
     )
   );
 
-  // Связь "union -> ребёнок" (ветка к детям)
+  // Link from union node to child
+  // Линия от union-узла к ребёнку
   diagram.linkTemplateMap.add("ParentChild",
     $(go.Link,
       {
@@ -192,21 +231,30 @@
     )
   );
 
-  // --- Вспомогательные функции для ключа союза (чтобы не было дублей) ---
 
-  // Делает пару в одном порядке: (min, max)
+
+
+
+  // =========================================================
+  // Helper functions
+  // =========================================================
+
+  // Normalize a pair so the smaller id always comes first
+  // Нормализовать пару так, чтобы меньший id всегда стоял первым
   function normalizePair(a, b) {
-    // вернём [min,max] (b может быть null)
     if (b == null) return [a, null];
     return a < b ? [a, b] : [b, a];
   }
 
-  // Генерирует ключ union-узла: u_1_2 или u_1_none
+  // Build a unique union node key from two person ids
+  // Построить уникальный ключ union-узла из двух id людей
   function unionKey(a, b) {
     const [x, y] = normalizePair(a, b);
     return y == null ? `u_${x}_none` : `u_${x}_${y}`;
   }
 
+  // Format partial dates for compact display inside the tree node
+  // Форматировать неполные даты для компактного отображения в узле дерева
   function formatShortDate(year, month, day, fallback) {
     if (year) {
       if (month) {
@@ -226,26 +274,39 @@
         const dd = String(day).padStart(2, "0");
         return `${dd}.${mm}`;
       }
-    return mm;
+      return mm;
+    }
+
+    if (day) {
+      return String(day);
+    }
+
+    return fallback || "";
   }
 
-  if (day) {
-    return String(day);
-  }
 
-  return fallback || "";
-}
+
+
+
+  // =========================================================
+  // Data loading and model building
+  // =========================================================
 
   try {
-    // Берём данные дерева с сервера
+    // Read tree_id from the current page URL
+    // Считать tree_id из URL текущей страницы
     const params = new URLSearchParams(window.location.search);
     const treeId = params.get("tree_id");
 
+    // Build API URL for loading tree data
+    // Сформировать URL API для загрузки данных дерева
     let apiUrl = "/api/tree";
     if (treeId) {
       apiUrl += `?tree_id=${treeId}`;
     }
 
+    // Fetch tree data from the server
+    // Получить данные дерева с сервера
     const res = await fetch(apiUrl);
     if (!res.ok) {
       const text = await res.text();
@@ -257,16 +318,15 @@
     const persons = data.persons || [];
     const relationships = data.relationships || [];
 
-    // --- Узлы людей для GoJS ---
+    // Convert server-side person records into GoJS node objects
+    // Преобразовать записи людей с сервера в объекты узлов GoJS
     const personNodes = persons.map(p => {
-      // Имя + фамилия (если пусто — "Person #id")
       const fullName = (
         `${p.first_name || ""} ${p.middle_name || ""} ${p.last_name || ""}`
       ).replace(/\s+/g, " ").trim() || `Person #${p.id}`;
 
       const maidenLine = p.maiden_name ? `maiden: ${p.maiden_name}` : "";
-      
-      // Даты: "birth – death" (если есть)
+
       const birthDisplay = formatShortDate(
         p.birth_year, p.birth_month, p.birth_day, p.birth_date
       );
@@ -284,8 +344,7 @@
       const photoSrc = p.photo_filename
         ? `/static/uploads/${p.photo_filename}`
         : "";
-      
-      // key обязателен: это id узла
+
       return {
         key: p.id,
         category: "",
@@ -298,27 +357,30 @@
       };
     });
 
-    // Build parent map: childId -> Set(parents)
+    // parentsOf: childId -> set of parent ids
+    // parentsOf: childId -> множество id родителей
     const parentsOf = new Map();
-    // Build spouse pairs: Set("min:max")
+
+    // spousePairs: set of normalized spouse pair ids
+    // spousePairs: множество нормализованных пар супругов
     const spousePairs = new Set();
 
-    // Разбираем все связи: родитель/ребёнок и супруги
+    // Parse all relationship records into helper structures
+    // Разобрать все связи в вспомогательные структуры
     for (const r of relationships) {
-      // person_id = родитель, relative_id = ребёнок
-      if (r.relation_type === "parent") { //только записи родитель-ребёнок
+      if (r.relation_type === "parent") {
         const parentId = r.person_id;
         const childId = r.relative_id;
 
-        // Создаём Set родителей для ребёнка, если ещё нет
-        if (!parentsOf.has(childId)) parentsOf.set(childId, new Set()); //есть ли уже запись для этого ребёнка
+        if (!parentsOf.has(childId)) {
+          parentsOf.set(childId, new Set());
+        }
         parentsOf.get(childId).add(parentId);
+
       } else if (r.relation_type === "spouse") {
-        // person_id и relative_id = супруги
         const a = r.person_id;
         const b = r.relative_id;
 
-        // Проверки от мусора
         if (a != null && b != null && a !== b) {
           const [x, y] = normalizePair(a, b);
           spousePairs.add(`${x}:${y}`);
@@ -326,71 +388,63 @@
       }
     }
 
-    // --- Тут будут храниться union-узлы и связи ---
+    // unionNodes will store synthetic union points
+    // unionNodes будут хранить служебные union-узлы
     const unionNodes = [];
+
+    // links will store final GoJS links
+    // links будут хранить финальные связи GoJS
     const links = [];
 
-    // Чтобы не создавать один и тот же union 10 раз
+    // Keep track of created union nodes to avoid duplicates
+    // Следить за уже созданными union-узлами, чтобы не создавать дубликаты
     const createdUnions = new Set();
 
-    // Создаёт union-узел и соединяет супругов с ним (если ещё не создан)
+    // Create one union node and spouse links if it does not exist yet
+    // Создать один union-узел и связи супругов, если он ещё не создан
     function ensureUnion(a, b) {
       const key = unionKey(a, b);
 
       if (!createdUnions.has(key)) {
         createdUnions.add(key);
 
-        // Добавляем точку союза
         unionNodes.push({ key, category: "Union" });
 
-        // Связи супругов к этой точке
         links.push({ from: a, to: key, category: "Spouse" });
         if (b != null) links.push({ from: b, to: key, category: "Spouse" });
       }
+
       return key;
     }
 
-    // Создавайте союзы из пар супругов. 
-    // 1) Сначала создаём союзы из данных "spouse"
-    //for (const pair of spousePairs) {
-    //  const [xStr, yStr] = pair.split(":");
-    //  const x = Number(xStr);
-    //  const y = Number(yStr);
-    //  ensureUnion(x, y);
-    //}
-
-    // Прикрепление детей к браку на основании родителей
-    // Правило:
-    // - 2+ родителей: берём первых двух (по возрастанию) и делаем union (даже если нет spouse)
-    // - 1 родитель: union с "none"
-    
-    // 2) Потом цепляем детей к союзу родителей
+    // Attach children to union nodes derived from their parent set
+    // Привязать детей к union-узлам, построенным на основе их родителей
     for (const [childId, parentSet] of parentsOf.entries()) {
       const parents = Array.from(parentSet).sort((a, b) => a - b);
 
       let uKey;
       if (parents.length >= 2) {
-        // если родителей 2+ — берём первых двух
+        // If there are two or more parents, use the first two
+        // Если родителей два или больше, использовать первых двух
         uKey = ensureUnion(parents[0], parents[1]);
       } else if (parents.length === 1) {
-        // если родитель один — создаём союз "родитель + none"
+        // If there is only one parent, create a union with "none"
+        // Если родитель только один, создать союз с "none"
         uKey = ensureUnion(parents[0], null);
       } else {
         continue;
       }
 
-      // Связь "union -> ребёнок"
       links.push({ from: uKey, to: childId, category: "ParentChild" });
     }
 
-    // Final model
-    // Собираем все узлы вместе: люди + union-точки
+    // Build the final GoJS model from person nodes and union nodes
+    // Собрать финальную модель GoJS из узлов людей и union-узлов
     const nodes = [...personNodes, ...unionNodes];
-
-    // Отдаём GoJS модель: nodes + links
     diagram.model = new go.GraphLinksModel(nodes, links);
 
-    // Авто-зум, чтобы всё поместилось на экран
+    // Fit the tree to the screen and zoom out slightly for better overview
+    // Вписать дерево в экран и немного уменьшить масштаб для лучшего обзора
     diagram.zoomToFit();
     diagram.scale *= 0.9;
 
@@ -398,16 +452,29 @@
     console.error("Tree rendering error:", err);
   }
 
+
+
+
+
+  
+  // =========================================================
+  // PNG export
+  // =========================================================
+
   const exportBtn = document.getElementById("exportPngBtn");
 
   if (exportBtn) {
     exportBtn.addEventListener("click", () => {
       try {
+        // Generate image data from the current diagram
+        // Сгенерировать изображение на основе текущей диаграммы
         const imageData = diagram.makeImageData({
           background: "white",
           scale: 1
         });
 
+        // Build a safe filename based on the current tree title
+        // Сформировать безопасное имя файла на основе названия текущего дерева
         const link = document.createElement("a");
         const treeTitle =
           (window.CURRENT_TREE_TITLE || "family-tree")
@@ -420,6 +487,7 @@
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+
       } catch (err) {
         console.error("PNG export failed:", err);
         alert("Could not export the tree as PNG.");
