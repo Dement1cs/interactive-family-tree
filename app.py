@@ -95,10 +95,6 @@ def load_user(user_id):
 
 
 
-# auth helpers
-
-
-
 # =========================================================
 # Tree access helpers
 # =========================================================
@@ -1028,7 +1024,7 @@ def delete_person_route(person_id):
     tree_id = request.args.get("tree_id")
     require_tree_edit_access(tree_id)
 
-    person = get_person_in_tree_or_404(person_id, tree_id)
+    get_person_in_tree_or_404(person_id, tree_id)
 
     delete_person(person_id)
     return redirect(url_for("persons", tree_id=tree_id))
@@ -1205,7 +1201,7 @@ def delete_relation(person_id):
     # Только пользователи с правом редактирования могут удалять связи
     tree_id = request.args.get("tree_id")
     require_tree_edit_access(tree_id)
-    person = get_person_in_tree_or_404(person_id, tree_id)
+    get_person_in_tree_or_404(person_id, tree_id)
 
     relative_id = request.form.get("relative_id")
     relation_type = request.form.get("relation_type")
