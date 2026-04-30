@@ -1,6 +1,7 @@
 # =========================================================
 # imports
 # =========================================================
+import os
 import sqlite3
 
 # =========================================================
@@ -9,14 +10,12 @@ import sqlite3
 
 # Path to the local SQLite database file used for tree data
 # Путь к локальному файлу SQLite, в котором хранятся данные дерева
-DB_PATH = "database.db"
+DEFAULT_DB_PATH = "database.db"
 
 def get_db():
-    """Create and return a SQLite connection with row access by column name."""
-
-    # Use sqlite3.Row so query results can be accessed like dictionaries
-    # Использовать sqlite3.Row, чтобы к результатам запроса можно было обращаться по именам колонок
-    conn = sqlite3.connect(DB_PATH)
+    """Create and return a SQLite connection."""
+    db_path = os.environ.get("DATABASE_DB_PATH", DEFAULT_DB_PATH)
+    conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
 
