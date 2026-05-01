@@ -1595,6 +1595,9 @@ def init_db_route():
 # Init / main
 # =========================================================
 
+with app.app_context():
+    db.create_all()
+    
 # Run the app directly in development mode
 # Запускать приложение напрямую в режиме разработки
 if __name__ == "__main__":
