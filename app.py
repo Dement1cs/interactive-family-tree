@@ -59,12 +59,18 @@ app = Flask(__name__)
 # core Flask / SQLAlchemy configuration
 # Основная конфигурация Flask / SQLAlchemy
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-change-me")
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///app.db"
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
+    "SQLALCHEMY_DATABASE_URI",
+    "sqlite:///app.db"
+)
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 # file upload configuration
 # Настройки загрузки файлов
-app.config["UPLOAD_FOLDER"] = os.path.join("static", "uploads")
+app.config["UPLOAD_FOLDER"] = os.environ.get(
+    "UPLOAD_FOLDER",
+    os.path.join("static", "uploads")
+)
 app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024  # 5 MB
 
 # allowed image extensions for profile and gallery uploads
