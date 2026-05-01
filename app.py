@@ -1583,12 +1583,12 @@ def api_tables():
 
 
 # ------- init_db_route роут ------------------------------
-@app.route("/init-db")
-@login_required
-def init_db_route():
-    """Initialize the local SQLite database schema."""
-    init_db()
-    return "Database initialized."
+#@app.route("/init-db")
+#@login_required
+#def init_db_route():
+#    """Initialize the local SQLite database schema."""
+#    init_db()
+#    return "Database initialized."
 
 
 # =========================================================
@@ -1597,6 +1597,7 @@ def init_db_route():
 
 with app.app_context():
     db.create_all()
+    init_db()
     
 # Run the app directly in development mode
 # Запускать приложение напрямую в режиме разработки
