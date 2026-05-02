@@ -407,10 +407,10 @@
                 {% for item in images %}
                     <div class="gallery-card">
                         <img
-                            src="{{ url_for('static', filename='uploads/' ~ item['filename']) }}"
+                            src="{{ url_for('uploaded_file', filename=item['filename']) }}"
                             alt="Gallery image"
                             class="gallery-thumb"
-                            data-fullsrc="{{ url_for('static', filename='uploads/' ~ item['filename']) }}"
+                            data-fullsrc="{{ url_for('uploaded_file', filename=item['filename']) }}"
                         >
 
                         {% if tree_role in ["owner", "editor"] %}
@@ -456,7 +456,7 @@
                 {% for item in videos %}
                     <div class="gallery-card">
                         <video controls class="gallery-video" preload="metadata">
-                            <source src="{{ url_for('static', filename='uploads/' ~ item['filename']) }}">
+                            <source src="{{ url_for('uploaded_file', filename=item['filename']) }}">
                             Your browser does not support the video tag.
                         </video>
 
@@ -503,7 +503,7 @@
                 {% for item in audio_files %}
                     <div class="audio-card">
                         <audio controls preload="metadata" class="audio-player">
-                            <source src="{{ url_for('static', filename='uploads/' ~ item['filename']) }}">
+                            <source src="{{ url_for('uploaded_file', filename=item['filename']) }}">
                             Your browser does not support the audio element.
                         </audio>
 

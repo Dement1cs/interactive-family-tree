@@ -5,7 +5,7 @@ import json
 import smtplib
 from zoneinfo import ZoneInfo
 from werkzeug.utils import secure_filename
-from flask import Flask, render_template, request, redirect, url_for, jsonify, abort
+from flask import Flask, render_template, request, redirect, url_for, jsonify, abort, send_from_directory
 from db import(
     get_db,
     init_db, 
@@ -1430,6 +1430,11 @@ def delete_relation(person_id):
 # =========================================================
 # Photo routes
 # =========================================================
+
+@app.route("/uploads/<path:filename>")
+def uploaded_file(filename):
+    """Serve uploaded files from the configured upload folder."""
+    return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
 
 # ------- upload_person_photo_route роут ------------------
 @app.route("/persons/<int:person_id>/photo/upload", methods=["POST"])
