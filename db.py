@@ -168,14 +168,14 @@ def update_person(person_id, first_name, middle_name=None, last_name=None, maide
 
 # --- delete_person ---------------------------------------
 def delete_person(person_id):
-    """Delete a person together with their gallery records and relationships."""
+    """Delete a person together with their media records and relationships."""
 
     conn = get_db()
     cur = conn.cursor()
 
-    # Delete gallery photo records linked to this person
-    # Удалить записи фотографий галереи, связанные с этим человеком
-    cur.execute("DELETE FROM person_photos WHERE person_id = ?", (person_id,))
+    # Delete media records linked to this person
+    # Удалить медиа-записи, связанные с этим человеком
+    cur.execute("DELETE FROM person_media WHERE person_id = ?", (person_id,))
 
     # Delete all relationships where this person participates
     # Удалить все связи, в которых участвует этот человек
@@ -232,112 +232,64 @@ def remove_person_photo(person_id):
     conn.commit()
     conn.close()
 
-
-# --- add_gallery_photo -----------------------------------
-def add_gallery_photo(person_id, filename):
-    """Insert a new gallery photo record for a person."""
-
-    conn = get_db()
-    cur = conn.cursor()
-
-    # Store one gallery photo entry linked to the selected person
-    # Сохранить одну запись фотографии галереи, привязанную к выбранному человеку
-    cur.execute(
-        "INSERT INTO person_photos (person_id, filename) VALUES (?, ?)",
-        (person_id, filename)
-    )
-
-    conn.commit()
-    conn.close()
-
-
-# --- get_person_photos -----------------------------------
-def get_person_photos(person_id):
-    """Return all gallery photos for a person, newest first."""
-
-    conn = get_db()
-    cur = conn.cursor()
-
-    # Return gallery photos ordered from newest to oldest
-    # Вернуть фотографии галереи в порядке от новых к старым
-    cur.execute(
-        """
-        SELECT id, person_id, filename, uploaded_at
-        FROM person_photos
-        WHERE person_id = ?
-        ORDER BY uploaded_at DESC, id DESC
-        """,
-        (person_id,)
-    )
-
-    rows = cur.fetchall()
-    conn.close()
-    return rows
-
-
-# --- get_gallery_photo -----------------------------------
-def get_gallery_photo(photo_id):
-    """Return one gallery photo record by id."""
-
-    conn = get_db()
-    cur = conn.cursor()
-
-    cur.execute(
-        """
-        SELECT id, person_id, filename, uploaded_at
-        FROM person_photos
-        WHERE id = ?
-        """,
-        (photo_id,)
-    )
-
-    row = cur.fetchone()
-    conn.close()
-    return row
-
-
-# --- delete_gallery_photo --------------------------------
-def delete_gallery_photo(photo_id):
-    """Delete one gallery photo record by id."""
-
-    conn = get_db()
-    cur = conn.cursor()
-
-    cur.execute("DELETE FROM person_photos WHERE id = ?", (photo_id,))
-    conn.commit()
-    conn.close()
-
-
-
-
 # =========================================================
 # Tree cleanup / utility queries
 # =========================================================
 
-# --- delete_tree_data ------------------------------------
-def delete_tree_data(tree_id):
-    """Delete all SQLite data that belongs to one tree."""
+# --- get_used_upload_filenames ----------------------------
+def get_used_upload_filenames():
+    """Return a set of upload filenames that are still referenced in the database."""
 
     conn = get_db()
     cur = conn.cursor()
 
-    # Delete gallery photo records for people in this tree
-    # Удалить записи фотографий галереи для людей из этого дерева
+    used = set()
+
+    # Collect profile photo filenames
+    # Собрать имена файлов основных фото профиля
     cur.execute("""
-        DELETE FROM person_photos
+        SELECT photo_filename
+        FROM persons
+        WHERE photo_filename IS NOT NULL AND photo_filename != ''
+    """)
+    for row in cur.fetchall():
+        used.add(row["photo_filename"])
+
+    # Collect media filenames
+    # Собрать имена файлов медиа
+    cur.execute("""
+        SELECT filename
+        FROM person_media
+        WHERE filename IS NOT NULL AND filename != ''
+    """)
+    for row in cur.fetchall():
+        used.add(row["filename"])
+
+    conn.close()
+    return used
+
+# --- delete_tree_data ------------------------------------
+def delete_tree_data(tree_id):
+    conn = get_db()
+    cur = conn.cursor()
+
+    # Delete media records for people in this tree
+    # Удалить медиа-записи для людей из этого дерева
+    cur.execute("""
+        DELETE FROM person_media
         WHERE person_id IN (SELECT id FROM persons WHERE tree_id = ?)
     """, (tree_id,))
 
-    # Delete relationships where either side belongs to this tree
-    # Удалить связи, где любая из сторон принадлежит этому дереву
+    # Delete relationships for people in this tree
+    # Удалить связи для людей из этого дерева
     cur.execute("""
         DELETE FROM relationships
         WHERE person_id IN (SELECT id FROM persons WHERE tree_id = ?)
            OR relative_id IN (SELECT id FROM persons WHERE tree_id = ?)
     """, (tree_id, tree_id))
 
-    # Delete the people records themselves
-    # Удалить сами записи людей
+    # Delete the people themselves
+    # Удалить самих людей
     cur.execute("DELETE FROM persons WHERE tree_id = ?", (tree_id,))
 
     conn.commit()
@@ -852,3 +804,75 @@ def get_ancestors(person_id, min_level=5, max_level=10):
                 all_ancestors.append(row)
 
     return all_ancestors
+
+# =========================================================
+# media queries
+# =========================================================
+
+# --- add_person_media ------------------------------------
+def add_person_media(person_id, filename, media_type):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        INSERT INTO person_media (person_id, filename, media_type)
+        VALUES (?, ?, ?)
+        """,
+        (person_id, filename, media_type)
+    )
+    conn.commit()
+    conn.close()
+
+# --- get_person_media ------------------------------------
+def get_person_media(person_id, media_type=None):
+    conn = get_db()
+    cur = conn.cursor()
+
+    if media_type:
+        cur.execute(
+            """
+            SELECT id, person_id, filename, media_type, uploaded_at
+            FROM person_media
+            WHERE person_id = ? AND media_type = ?
+            ORDER BY uploaded_at DESC, id DESC
+            """,
+            (person_id, media_type)
+        )
+    else:
+        cur.execute(
+            """
+            SELECT id, person_id, filename, media_type, uploaded_at
+            FROM person_media
+            WHERE person_id = ?
+            ORDER BY uploaded_at DESC, id DESC
+            """,
+            (person_id,)
+        )
+
+    rows = cur.fetchall()
+    conn.close()
+    return rows
+
+# --- get_media_item --------------------------------------
+def get_media_item(media_id):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT id, person_id, filename, media_type, uploaded_at
+        FROM person_media
+        WHERE id = ?
+        """,
+        (media_id,)
+    )
+    row = cur.fetchone()
+    conn.close()
+    return row
+
+# --- delete_media_item -----------------------------------
+def delete_media_item(media_id):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM person_media WHERE id = ?", (media_id,))
+    conn.commit()
+    conn.close()

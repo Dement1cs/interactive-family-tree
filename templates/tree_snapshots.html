@@ -29,7 +29,7 @@
                 <div class="tree-card">
                     <div class="tree-card-body">
                         <h4 class="tree-card-title">{{ s.title }}</h4>
-                        <p class="muted">{{ s.created_at.strftime("%d.%m.%Y %H:%M") }}</p>
+                        <p class="muted">{{ format_datetime_local(s.created_at) }}</p>
                     </div>
 
                     <div class="tree-card-actions">

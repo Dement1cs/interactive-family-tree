@@ -2,6 +2,8 @@
 import os
 import uuid
 import json
+import smtplib
+from zoneinfo import ZoneInfo
 from werkzeug.utils import secure_filename
 from flask import Flask, render_template, request, redirect, url_for, jsonify, abort
 from db import(
@@ -14,10 +16,10 @@ from db import(
     update_person,
     update_person_photo,
     remove_person_photo,
-    add_gallery_photo,
-    get_person_photos,
-    get_gallery_photo,
-    delete_gallery_photo,
+    add_person_media,
+    get_person_media,
+    get_media_item,
+    delete_media_item,
     delete_person,
     delete_tree_data,
     add_relationship,
@@ -34,13 +36,16 @@ from db import(
     get_great_grandparents,
     get_great_great_grandparents,
     get_ancestors,
+    get_used_upload_filenames,
     search_persons
     )
 from extensions import db, migrate, login_manager, csrf
 
 from models import User, Tree, TreeAccess, TreeSnapshot
 from flask_login import login_user, logout_user, login_required, current_user
-from forms import RegisterForm, LoginForm
+from forms import RegisterForm, LoginForm, ForgotPasswordForm, ResetPasswordForm
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
+from email.message import EmailMessage
 # ============================================================
 
 
@@ -71,11 +76,13 @@ app.config["UPLOAD_FOLDER"] = os.environ.get(
     "UPLOAD_FOLDER",
     os.path.join("static", "uploads")
 )
-app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024  # 5 MB
+app.config["MAX_CONTENT_LENGTH"] = 25 * 1024 * 1024  # 25 MB
 
 # allowed image extensions for profile and gallery uploads
 # Разрешённые расширения изображений для фото профиля и галереи
 ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
+ALLOWED_VIDEO_EXTENSIONS = {"mp4", "webm", "mov"}
+ALLOWED_AUDIO_EXTENSIONS = {"mp3", "wav", "ogg", "m4a"}
 
 # ensure the uploads directory exists before saving files
 # Убедиться, что папка uploads существует до сохранения файлов
@@ -99,7 +106,58 @@ def load_user(user_id):
     # Загрузить аутентифицированного пользователя по id для Flask-Login
     return db.session.get(User, int(user_id))
 
+# =========================================================
+# auth helpers
+# =========================================================
 
+def get_reset_serializer():
+    return URLSafeTimedSerializer(app.config["SECRET_KEY"])
+
+
+def generate_reset_token(email):
+    serializer = get_reset_serializer()
+    return serializer.dumps(email, salt="password-reset-salt")
+
+
+def verify_reset_token(token, max_age=3600):
+    serializer = get_reset_serializer()
+    try:
+        email = serializer.loads(token, salt="password-reset-salt", max_age=max_age)
+        return email
+    except (BadSignature, SignatureExpired):
+        return None
+
+
+def send_reset_email(to_email, reset_url):
+    """Send password reset email if SMTP is configured."""
+    mail_server = os.environ.get("MAIL_SERVER")
+    mail_port = os.environ.get("MAIL_PORT")
+    mail_username = os.environ.get("MAIL_USERNAME")
+    mail_password = os.environ.get("MAIL_PASSWORD")
+    mail_from = os.environ.get("MAIL_FROM", mail_username)
+    mail_use_tls = os.environ.get("MAIL_USE_TLS", "true").lower() == "true"
+
+    if not all([mail_server, mail_port, mail_username, mail_password, mail_from]):
+        return False
+
+    msg = EmailMessage()
+    msg["Subject"] = "Reset your password"
+    msg["From"] = mail_from
+    msg["To"] = to_email
+    msg.set_content(
+        f"Hello,\n\n"
+        f"Use the link below to reset your password:\n\n"
+        f"{reset_url}\n\n"
+        f"This link expires in 1 hour.\n"
+    )
+
+    with smtplib.SMTP(mail_server, int(mail_port)) as server:
+        if mail_use_tls:
+            server.starttls()
+        server.login(mail_username, mail_password)
+        server.send_message(msg)
+
+    return True
 
 # =========================================================
 # Tree access helpers
@@ -217,6 +275,17 @@ MONTH_NAMES = {
     9: "September", 10: "October", 11: "November", 12: "December"
 }
 
+def format_datetime_local(dt, timezone_name="Europe/Dublin"):
+    """Format UTC datetime in local timezone for display."""
+    if not dt:
+        return ""
+
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=ZoneInfo("UTC"))
+
+    local_dt = dt.astimezone(ZoneInfo(timezone_name))
+    return local_dt.strftime("%d.%m.%Y %H:%M")
+
 def format_partial_date(year=None, month=None, day=None, fallback=None):
     """Format partial dates such as 'March 1999' or '18 March'."""
 
@@ -244,27 +313,50 @@ def format_partial_date(year=None, month=None, day=None, fallback=None):
 
     return fallback or ""
 
-def allowed_image_file(filename):
-    """Return True if the uploaded file has an allowed image extension."""
-    # Check file extension before accepting uploaded image files
-    # Проверить расширение файла перед загрузкой изображения
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_IMAGE_EXTENSIONS
+def allowed_file(filename, allowed_extensions):
+    """Return True if the uploaded file has an allowed extension."""
+    # Проверить, что расширение файла входит в разрешённый набор
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in allowed_extensions
 
 @app.context_processor
 def inject_helpers():
     """Expose shared formatting helpers to Jinja templates."""
     # Make the date formatter available in all templates
     # Сделать форматтер дат доступным во всех шаблонах
-    return dict(format_partial_date=format_partial_date)
+    return dict(
+    format_partial_date=format_partial_date,
+    format_datetime_local=format_datetime_local
+)
 
+def cleanup_orphan_uploads():
+    """Delete files from the upload folder that are no longer referenced in the database."""
 
+    used_filenames = get_used_upload_filenames()
+    removed_count = 0
+
+    if not os.path.exists(app.config["UPLOAD_FOLDER"]):
+        return 0
+
+    for name in os.listdir(app.config["UPLOAD_FOLDER"]):
+        file_path = os.path.join(app.config["UPLOAD_FOLDER"], name)
+
+        # Skip directories and keep only real files
+        # Пропустить папки и обрабатывать только реальные файлы
+        if not os.path.isfile(file_path):
+            continue
+
+        if name not in used_filenames:
+            os.remove(file_path)
+            removed_count += 1
+
+    return removed_count
 
 # =========================================================
 # Snapshot helpers
 # =========================================================
 
 def build_tree_snapshot_data(tree_id):
-    """Build a full JSON snapshot of one tree, including people, relations and photos."""
+    """Build a full JSON snapshot of one tree, including people, relations and media."""
 
     # Make sure the tree exists before building the snapshot
     # Сначала убедиться, что дерево существует
@@ -294,14 +386,14 @@ def build_tree_snapshot_data(tree_id):
         ORDER BY r.person_id, r.relative_id
     """, (tree_id, tree_id)).fetchall()
 
-    # Read gallery photo records linked to people in this tree
-    # Считать записи фотографий, привязанных к людям из этого дерева
-    person_photos = conn.execute("""
-        SELECT pp.*
-        FROM person_photos pp
-        JOIN persons p ON pp.person_id = p.id
+    # Read media records linked to people in this tree
+    # Считать медиа-записи, привязанные к людям из этого дерева
+    person_media = conn.execute("""
+        SELECT pm.*
+        FROM person_media pm
+        JOIN persons p ON pm.person_id = p.id
         WHERE p.tree_id = ?
-        ORDER BY pp.id
+        ORDER BY pm.id
     """, (tree_id,)).fetchall()
 
     conn.close()
@@ -315,7 +407,7 @@ def build_tree_snapshot_data(tree_id):
         },
         "persons": [dict(p) for p in persons],
         "relationships": [dict(r) for r in relationships],
-        "person_photos": [dict(pp) for pp in person_photos]
+        "person_media": [dict(pm) for pm in person_media]
     }
 
     return json.dumps(snapshot_data)
@@ -330,7 +422,7 @@ def restore_tree_from_snapshot(tree_id, snapshot_json):
 
     persons = data.get("persons", [])
     relationships = data.get("relationships", [])
-    person_photos = data.get("person_photos", [])
+    person_media = data.get("person_media", [])
 
     conn = get_db()
     cur = conn.cursor()
@@ -343,10 +435,10 @@ def restore_tree_from_snapshot(tree_id, snapshot_json):
            OR relative_id IN (SELECT id FROM persons WHERE tree_id = ?)
     """, (tree_id, tree_id))
 
-    # Delete current photo records for all people in this tree
-    # Удалить текущие записи фотографий для всех людей в этом дереве
+    # Delete current media records for all people in this tree
+    # Удалить текущие медиа-записи для всех людей в этом дереве
     cur.execute("""
-        DELETE FROM person_photos
+        DELETE FROM person_media
         WHERE person_id IN (SELECT id FROM persons WHERE tree_id = ?)
     """, (tree_id,))
 
@@ -403,22 +495,24 @@ def restore_tree_from_snapshot(tree_id, snapshot_json):
             p.get("created_at"),
         ))
 
-    # Restore gallery photo records linked to restored people
-    # Восстановить записи фотографий, привязанные к восстановленным людям
-    for pp in person_photos:
+    # Restore media records linked to restored people
+    # Восстановить медиа-записи, привязанные к восстановленным людям
+    for pm in person_media:
         cur.execute("""
-            INSERT INTO person_photos (
+            INSERT INTO person_media (
                 id,
                 person_id,
                 filename,
+                media_type,
                 uploaded_at
             )
-            VALUES (?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?)
         """, (
-            pp.get("id"),
-            pp.get("person_id"),
-            pp.get("filename"),
-            pp.get("uploaded_at"),
+            pm.get("id"),
+            pm.get("person_id"),
+            pm.get("filename"),
+            pm.get("media_type"),
+            pm.get("uploaded_at"),
         ))
 
     # Restore relationships after people have been recreated
@@ -528,6 +622,63 @@ def logout():
     # Завершить текущую авторизованную сессию
     logout_user()
     return redirect(url_for("login"))
+
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    """Allow the user to request a password reset link."""
+
+    if current_user.is_authenticated:
+        return redirect(url_for("dashboard"))
+
+    form = ForgotPasswordForm()
+    reset_url = None
+    email_sent = False
+
+    if form.validate_on_submit():
+        email = form.email.data.lower().strip()
+        user = User.query.filter_by(email=email).first()
+
+        if user:
+            token = generate_reset_token(user.email)
+            reset_url = url_for("reset_password", token=token, _external=True)
+
+            try:
+                email_sent = send_reset_email(user.email, reset_url)
+            except Exception:
+                email_sent = False
+
+        return render_template(
+            "forgot_password.html",
+            form=form,
+            reset_url=reset_url if user and not email_sent else None,
+            email_sent=email_sent
+        )
+
+    return render_template("forgot_password.html", form=form, reset_url=None, email_sent=False)
+
+
+@app.route("/reset-password/<token>", methods=["GET", "POST"])
+def reset_password(token):
+    """Reset a user's password using a valid reset token."""
+
+    if current_user.is_authenticated:
+        return redirect(url_for("dashboard"))
+
+    email = verify_reset_token(token)
+    if not email:
+        return "Invalid or expired reset link.", 400
+
+    user = User.query.filter_by(email=email).first()
+    if user is None:
+        return "User not found.", 404
+
+    form = ResetPasswordForm()
+    if form.validate_on_submit():
+        user.set_password(form.password.data)
+        db.session.commit()
+        return redirect(url_for("login"))
+
+    return render_template("reset_password.html", form=form)
 
 
 
@@ -729,9 +880,36 @@ def delete_tree_route(tree_id):
     if tree is None:
         return "Tree not found", 404
 
+    # Load all people in this tree before deleting database records
+    # Загрузить всех людей из этого дерева до удаления записей из базы данных
+    people = get_all_persons(tree_id)
+
+    # Delete profile photo files and media files from disk
+    # Удалить с диска фото профиля и медиафайлы
+    for person in people:
+        profile_filename = person["photo_filename"]
+        if profile_filename:
+            profile_path = os.path.join(app.config["UPLOAD_FOLDER"], profile_filename)
+            if os.path.exists(profile_path):
+                os.remove(profile_path)
+
+        media_items = get_person_media(person["id"])
+        for item in media_items:
+            file_path = os.path.join(app.config["UPLOAD_FOLDER"], item["filename"])
+            if os.path.exists(file_path):
+                os.remove(file_path)
+
     # Delete all people and relationships stored for this tree in the SQLite data store
     # Удалить всех людей и все связи этого дерева из основной SQLite-базы данных
     delete_tree_data(tree_id)
+
+    # Delete shared access entries for this tree
+    # Удалить записи общего доступа для этого дерева
+    TreeAccess.query.filter_by(tree_id=tree.id).delete()
+
+    # Delete snapshot entries for this tree
+    # Удалить снапшоты этого дерева
+    TreeSnapshot.query.filter_by(tree_id=tree.id).delete()
 
     # Delete the tree record itself from app.db
     # Удалить саму запись дерева из app.db
@@ -739,7 +917,6 @@ def delete_tree_route(tree_id):
     db.session.commit()
 
     return redirect(url_for("dashboard"))
-
 
 # ------- manage_tree_access роут -------------------------
 @app.route("/trees/<int:tree_id>/access", methods=["GET", "POST"])
@@ -922,9 +1099,11 @@ def person_detail(person_id):
     tree_role = get_tree_role_for_current_user(tree_id)
 
     # Load the selected person and related media
-    # Загрузить выбранного человека и связанные с ним фотографии
+    # Загрузить выбранного человека и связанные с ним медиафайлы
     person = get_person_in_tree_or_404(person_id, tree_id)
-    photos = get_person_photos(person_id)
+    images = get_person_media(person_id, "image")
+    videos = get_person_media(person_id, "video")
+    audio_files = get_person_media(person_id, "audio")
 
     # Load direct and computed family relations for display
     # Загрузить прямые и вычисляемые семейные связи для отображения
@@ -954,7 +1133,9 @@ def person_detail(person_id):
         great_grandparents=great_grandparents,
         great_great_grandparents=great_great_grandparents,
         ancestors=ancestors,
-        photos=photos,
+        images=images,
+        videos=videos,
+        audio_files=audio_files,
         tree_id=tree_id,
         tree_role=tree_role
     )
@@ -1030,7 +1211,23 @@ def delete_person_route(person_id):
     tree_id = request.args.get("tree_id")
     require_tree_edit_access(tree_id)
 
-    get_person_in_tree_or_404(person_id, tree_id)
+    person = get_person_in_tree_or_404(person_id, tree_id)
+
+    # Delete the main profile photo file if it exists
+    # Удалить основной файл фото профиля, если он существует
+    profile_filename = person["photo_filename"]
+    if profile_filename:
+        profile_path = os.path.join(app.config["UPLOAD_FOLDER"], profile_filename)
+        if os.path.exists(profile_path):
+            os.remove(profile_path)
+
+    # Delete all media files linked to this person
+    # Удалить все медиафайлы, связанные с этим человеком
+    media_items = get_person_media(person_id)
+    for item in media_items:
+        file_path = os.path.join(app.config["UPLOAD_FOLDER"], item["filename"])
+        if os.path.exists(file_path):
+            os.remove(file_path)
 
     delete_person(person_id)
     return redirect(url_for("persons", tree_id=tree_id))
@@ -1253,7 +1450,7 @@ def upload_person_photo_route(person_id):
     if not file or not file.filename:
         return "No file selected", 400
 
-    if not allowed_image_file(file.filename):
+    if not allowed_file(file.filename, ALLOWED_IMAGE_EXTENSIONS):
         return "Invalid image format", 400
 
     # Remove the old profile photo from disk if it exists
@@ -1302,66 +1499,134 @@ def delete_person_photo_route(person_id):
     return redirect(url_for("person_detail", person_id=person_id, tree_id=tree_id))
 
 
-# ------- upload_gallery_photo_route роут -----------------
+# ------- upload_gallery_image_route роут -----------------
 @app.route("/persons/<int:person_id>/gallery/upload", methods=["POST"])
 @login_required
-def upload_gallery_photo_route(person_id):
-    """Upload a new gallery photo for a person."""
+def upload_gallery_image_route(person_id):
+    """Upload a new gallery image for a person."""
 
-    # Only users with edit access can add gallery photos
-    # Только пользователи с правом редактирования могут добавлять фотографии в галерею
+    # Only users with edit access can add gallery images
+    # Только пользователи с правом редактирования могут добавлять изображения в галерею
     tree_id = request.args.get("tree_id")
     require_tree_edit_access(tree_id)
 
-    person = get_person_in_tree_or_404(person_id, tree_id)
+    get_person_in_tree_or_404(person_id, tree_id)
 
-    # Validate the uploaded file before saving it
-    # Проверить загруженный файл перед сохранением
-    file = request.files.get("gallery_photo")
+    # Validate the uploaded image before saving it
+    # Проверить загруженное изображение перед сохранением
+    file = request.files.get("gallery_image")
     if not file or not file.filename:
         return "No file selected", 400
 
-    if not allowed_image_file(file.filename):
+    if not allowed_file(file.filename, ALLOWED_IMAGE_EXTENSIONS):
         return "Invalid image format", 400
 
     # Generate a unique safe filename for the gallery image
-    # Сгенерировать уникальное и безопасное имя файла для фотографии галереи
+    # Сгенерировать уникальное и безопасное имя файла для изображения галереи
     ext = file.filename.rsplit(".", 1)[1].lower()
-    filename = secure_filename(f"gallery_{person_id}_{uuid.uuid4().hex}.{ext}")
+    filename = secure_filename(f"image_{person_id}_{uuid.uuid4().hex}.{ext}")
     save_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
 
     file.save(save_path)
-    add_gallery_photo(person_id, filename)
+    add_person_media(person_id, filename, "image")
 
     return redirect(url_for("person_detail", person_id=person_id, tree_id=tree_id))
 
 
-# ------- delete_gallery_photo_route роут -----------------
-@app.route("/persons/<int:person_id>/gallery/<int:photo_id>/delete", methods=["POST"])
+# ------- upload_video_route роут -------------------------
+@app.route("/persons/<int:person_id>/videos/upload", methods=["POST"])
 @login_required
-def delete_gallery_photo_route(person_id, photo_id):
-    """Delete one gallery photo that belongs to the selected person."""
+def upload_video_route(person_id):
+    """Upload a new video for a person."""
 
-    # Only users with edit access can remove gallery photos
-    # Только пользователи с правом редактирования могут удалять фотографии из галереи
+    # Only users with edit access can add videos
+    # Только пользователи с правом редактирования могут добавлять видео
     tree_id = request.args.get("tree_id")
     require_tree_edit_access(tree_id)
 
-    person = get_person_in_tree_or_404(person_id, tree_id)
+    get_person_in_tree_or_404(person_id, tree_id)
 
-    # Make sure the requested gallery photo belongs to this person
-    # Убедиться, что выбранная фотография галереи принадлежит именно этому человеку
-    photo = get_gallery_photo(photo_id)
-    if photo is None or photo["person_id"] != person_id:
-        return "Photo not found", 404
+    # Validate the uploaded video before saving it
+    # Проверить загруженное видео перед сохранением
+    file = request.files.get("video_file")
+    if not file or not file.filename:
+        return "No file selected", 400
+
+    if not allowed_file(file.filename, ALLOWED_VIDEO_EXTENSIONS):
+        return "Invalid video format", 400
+
+    # Generate a unique safe filename for the video
+    # Сгенерировать уникальное и безопасное имя файла для видео
+    ext = file.filename.rsplit(".", 1)[1].lower()
+    filename = secure_filename(f"video_{person_id}_{uuid.uuid4().hex}.{ext}")
+    save_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+
+    file.save(save_path)
+    add_person_media(person_id, filename, "video")
+
+    return redirect(url_for("person_detail", person_id=person_id, tree_id=tree_id))
+
+
+# ------- upload_audio_route роут -------------------------
+@app.route("/persons/<int:person_id>/audio/upload", methods=["POST"])
+@login_required
+def upload_audio_route(person_id):
+    """Upload a new audio file for a person."""
+
+    # Only users with edit access can add audio files
+    # Только пользователи с правом редактирования могут добавлять аудиофайлы
+    tree_id = request.args.get("tree_id")
+    require_tree_edit_access(tree_id)
+
+    get_person_in_tree_or_404(person_id, tree_id)
+
+    # Validate the uploaded audio before saving it
+    # Проверить загруженный аудиофайл перед сохранением
+    file = request.files.get("audio_file")
+    if not file or not file.filename:
+        return "No file selected", 400
+
+    if not allowed_file(file.filename, ALLOWED_AUDIO_EXTENSIONS):
+        return "Invalid audio format", 400
+
+    # Generate a unique safe filename for the audio file
+    # Сгенерировать уникальное и безопасное имя файла для аудиофайла
+    ext = file.filename.rsplit(".", 1)[1].lower()
+    filename = secure_filename(f"audio_{person_id}_{uuid.uuid4().hex}.{ext}")
+    save_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+
+    file.save(save_path)
+    add_person_media(person_id, filename, "audio")
+
+    return redirect(url_for("person_detail", person_id=person_id, tree_id=tree_id))
+
+
+# ------- delete_media_route роут -------------------------
+@app.route("/persons/<int:person_id>/media/<int:media_id>/delete", methods=["POST"])
+@login_required
+def delete_media_route(person_id, media_id):
+    """Delete one media item that belongs to the selected person."""
+
+    # Only users with edit access can remove media files
+    # Только пользователи с правом редактирования могут удалять медиафайлы
+    tree_id = request.args.get("tree_id")
+    require_tree_edit_access(tree_id)
+
+    get_person_in_tree_or_404(person_id, tree_id)
+
+    # Make sure the requested media item belongs to this person
+    # Убедиться, что выбранный медиафайл принадлежит именно этому человеку
+    media_item = get_media_item(media_id)
+    if media_item is None or media_item["person_id"] != person_id:
+        return "Media file not found", 404
 
     # Remove the file from disk before deleting its database record
     # Удалить файл с диска перед удалением записи из базы данных
-    file_path = os.path.join(app.config["UPLOAD_FOLDER"], photo["filename"])
+    file_path = os.path.join(app.config["UPLOAD_FOLDER"], media_item["filename"])
     if os.path.exists(file_path):
         os.remove(file_path)
 
-    delete_gallery_photo(photo_id)
+    delete_media_item(media_id)
 
     return redirect(url_for("person_detail", person_id=person_id, tree_id=tree_id))
 
@@ -1580,16 +1845,6 @@ def api_tables():
     rows = conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
     conn.close()
     return jsonify([r["name"] if isinstance(r, dict) else r[0] for r in rows])
-
-
-# ------- init_db_route роут ------------------------------
-#@app.route("/init-db")
-#@login_required
-#def init_db_route():
-#    """Initialize the local SQLite database schema."""
-#    init_db()
-#    return "Database initialized."
-
 
 # =========================================================
 # Init / main

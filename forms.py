@@ -45,3 +45,13 @@ class LoginForm(FlaskForm):
     # Submit button for login
     # Кнопка отправки формы для входа
     submit = SubmitField("Log in")
+
+class ForgotPasswordForm(FlaskForm):
+    email = StringField("Email", validators=[DataRequired(), Email(), Length(max=255)])
+    submit = SubmitField("Send reset link")
+
+
+class ResetPasswordForm(FlaskForm):
+    password = PasswordField("New password", validators=[DataRequired(), Length(min=8)])
+    confirm = PasswordField("Confirm new password", validators=[DataRequired(), EqualTo("password")])
+    submit = SubmitField("Reset password")

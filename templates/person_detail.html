@@ -383,41 +383,41 @@
     </div>
 
     <div class="person-full-section">
-        <h3>Photo Gallery</h3>
+        <h3>Gallery</h3>
 
         {% if tree_role in ["owner", "editor"] %}
-            <form action="{{ url_for('upload_gallery_photo_route', person_id=person['id'], tree_id=tree_id) }}"
+            <form action="{{ url_for('upload_gallery_image_route', person_id=person['id'], tree_id=tree_id) }}"
                 method="post"
                 enctype="multipart/form-data"
                 class="upload-form">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                 <div class="custom-file-upload">
-                    <label for="gallery_photo" class="btn">Choose photo</label>
+                    <label for="gallery_image" class="btn">Choose image</label>
                     <span id="gallery-file-name" class="file-name">No file selected</span>
-                    <input type="file" id="gallery_photo" name="gallery_photo" accept="image/*" required hidden>
+                    <input type="file" id="gallery_image" name="gallery_image" accept="image/*" required hidden>
                 </div>
 
-                <button type="submit" class="btn">Upload to gallery</button>
+                <button type="submit" class="btn">Upload image</button>
             </form>
         {% endif %}
 
-        {% if photos and photos|length > 0 %}
+        {% if images and images|length > 0 %}
             <div class="gallery-grid">
-                {% for photo in photos %}
+                {% for item in images %}
                     <div class="gallery-card">
                         <img
-                            src="{{ url_for('static', filename='uploads/' ~ photo['filename']) }}"
-                            alt="Gallery photo"
+                            src="{{ url_for('static', filename='uploads/' ~ item['filename']) }}"
+                            alt="Gallery image"
                             class="gallery-thumb"
-                            data-fullsrc="{{ url_for('static', filename='uploads/' ~ photo['filename']) }}"
+                            data-fullsrc="{{ url_for('static', filename='uploads/' ~ item['filename']) }}"
                         >
 
                         {% if tree_role in ["owner", "editor"] %}
-                            <form action="{{ url_for('delete_gallery_photo_route', person_id=person['id'], photo_id=photo['id'], tree_id=tree_id) }}"
-                                  method="post"
-                                  class="inline-form"
-                                  onsubmit="return confirm('Delete this gallery photo?');">
+                            <form action="{{ url_for('delete_media_route', person_id=person['id'], media_id=item['id'], tree_id=tree_id) }}"
+                                method="post"
+                                class="inline-form"
+                                onsubmit="return confirm('Delete this image?');">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn-danger">Delete</button>
                             </form>
@@ -426,7 +426,101 @@
                 {% endfor %}
             </div>
         {% else %}
-            <p class="muted">No gallery photos yet.</p>
+            <p class="muted">No gallery images yet.</p>
+        {% endif %}
+    </div>
+
+
+    <div class="person-full-section">
+        <h3>Videos</h3>
+
+        {% if tree_role in ["owner", "editor"] %}
+            <form action="{{ url_for('upload_video_route', person_id=person['id'], tree_id=tree_id) }}"
+                method="post"
+                enctype="multipart/form-data"
+                class="upload-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div class="custom-file-upload">
+                    <label for="video_file" class="btn">Choose video</label>
+                    <span id="video-file-name" class="file-name">No file selected</span>
+                    <input type="file" id="video_file" name="video_file" accept="video/*" required hidden>
+                </div>
+
+                <button type="submit" class="btn">Upload video</button>
+            </form>
+        {% endif %}
+
+        {% if videos and videos|length > 0 %}
+            <div class="gallery-grid">
+                {% for item in videos %}
+                    <div class="gallery-card">
+                        <video controls class="gallery-video" preload="metadata">
+                            <source src="{{ url_for('static', filename='uploads/' ~ item['filename']) }}">
+                            Your browser does not support the video tag.
+                        </video>
+
+                        {% if tree_role in ["owner", "editor"] %}
+                            <form action="{{ url_for('delete_media_route', person_id=person['id'], media_id=item['id'], tree_id=tree_id) }}"
+                                method="post"
+                                class="inline-form"
+                                onsubmit="return confirm('Delete this video?');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn-danger">Delete</button>
+                            </form>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="muted">No videos yet.</p>
+        {% endif %}
+    </div>
+
+
+    <div class="person-full-section">
+        <h3>Audio</h3>
+
+        {% if tree_role in ["owner", "editor"] %}
+            <form action="{{ url_for('upload_audio_route', person_id=person['id'], tree_id=tree_id) }}"
+                method="post"
+                enctype="multipart/form-data"
+                class="upload-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div class="custom-file-upload">
+                    <label for="audio_file" class="btn">Choose audio</label>
+                    <span id="audio-file-name" class="file-name">No file selected</span>
+                    <input type="file" id="audio_file" name="audio_file" accept="audio/*" required hidden>
+                </div>
+
+                <button type="submit" class="btn">Upload audio</button>
+            </form>
+        {% endif %}
+
+        {% if audio_files and audio_files|length > 0 %}
+            <div class="audio-list">
+                {% for item in audio_files %}
+                    <div class="audio-card">
+                        <audio controls preload="metadata" class="audio-player">
+                            <source src="{{ url_for('static', filename='uploads/' ~ item['filename']) }}">
+                            Your browser does not support the audio element.
+                        </audio>
+
+                        {% if tree_role in ["owner", "editor"] %}
+                            <form action="{{ url_for('delete_media_route', person_id=person['id'], media_id=item['id'], tree_id=tree_id) }}"
+                                method="post"
+                                class="inline-form"
+                                onsubmit="return confirm('Delete this audio file?');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn-danger">Delete</button>
+                            </form>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="muted">No audio files yet.</p>
         {% endif %}
     </div>
 </div>
@@ -494,12 +588,34 @@
         });
     }
 
-    const galleryInput = document.getElementById("gallery_photo");
+    const galleryInput = document.getElementById("gallery_image");
     const galleryFileName = document.getElementById("gallery-file-name");
 
     if (galleryInput && galleryFileName) {
         galleryInput.addEventListener("change", function () {
             galleryFileName.textContent = this.files.length
+                ? this.files[0].name
+                : "No file selected";
+        });
+    }
+
+    const videoInput = document.getElementById("video_file");
+    const videoFileName = document.getElementById("video-file-name");
+
+    if (videoInput && videoFileName) {
+        videoInput.addEventListener("change", function () {
+            videoFileName.textContent = this.files.length
+                ? this.files[0].name
+                : "No file selected";
+        });
+    }
+
+    const audioInput = document.getElementById("audio_file");
+    const audioFileName = document.getElementById("audio-file-name");
+
+    if (audioInput && audioFileName) {
+        audioInput.addEventListener("change", function () {
+            audioFileName.textContent = this.files.length
                 ? this.files[0].name
                 : "No file selected";
         });

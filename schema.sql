@@ -36,3 +36,12 @@ CREATE TABLE IF NOT EXISTS person_photos (
     uploaded_at TEXT DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (person_id) REFERENCES persons(id)
 );
+
+CREATE TABLE IF NOT EXISTS person_media (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    person_id INTEGER NOT NULL,
+    filename TEXT NOT NULL,
+    media_type TEXT NOT NULL,
+    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (person_id) REFERENCES persons(id)
+);
