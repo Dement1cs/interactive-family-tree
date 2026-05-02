@@ -342,7 +342,7 @@
       ).toUpperCase() || "?";
 
       const photoSrc = p.photo_filename
-        ? `/static/uploads/${p.photo_filename}`
+        ? `/uploads/${p.photo_filename}`
         : "";
 
       return {
