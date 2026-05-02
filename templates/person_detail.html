@@ -620,6 +620,23 @@
                 : "No file selected";
         });
     }
+
+    // Restore scroll position after upload/delete form submission
+    const formsToRestoreScroll = document.querySelectorAll(".upload-form, .inline-form");
+
+    formsToRestoreScroll.forEach(form => {
+        form.addEventListener("submit", function () {
+            sessionStorage.setItem("restoreScrollY", String(window.scrollY));
+        });
+    });
+
+    window.addEventListener("load", function () {
+        const savedY = sessionStorage.getItem("restoreScrollY");
+        if (savedY !== null) {
+            window.scrollTo(0, parseInt(savedY, 10));
+            sessionStorage.removeItem("restoreScrollY");
+        }
+    });
 })();
 </script>
 {% endblock %}
