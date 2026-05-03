@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS persons (
     death_month INTEGER,
     death_day INTEGER,
     gender TEXT,
+    status TEXT DEFAULT 'unknown', 
     notes TEXT,
     photo_filename TEXT,
     tree_id INTEGER,

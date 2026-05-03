@@ -35,7 +35,11 @@ from db import(
     get_grandparents,
     get_great_grandparents,
     get_great_great_grandparents,
+    get_grandchildren,
+    get_great_grandchildren,
+    get_great_great_grandchildren,
     get_ancestors,
+    get_descendants,
     get_used_upload_filenames,
     search_persons
     )
@@ -1062,6 +1066,7 @@ def add_person_route():
         death_day = to_int_or_none(request.form.get("death_day"))
 
         gender = request.form.get("gender") or None
+        status = request.form.get("status") or "unknown"
         notes = request.form.get("notes") or None
 
         # First name is the only required person field
@@ -1079,6 +1084,7 @@ def add_person_route():
             birth_year, birth_month, birth_day,
             death_year, death_month, death_day,
             gender,
+            status,
             notes,
             tree_id
         )
@@ -1117,7 +1123,11 @@ def person_detail(person_id):
     grandparents = get_grandparents(person_id)
     great_grandparents = get_great_grandparents(person_id)
     great_great_grandparents = get_great_great_grandparents(person_id)
+    grandchildren = get_grandchildren(person_id)
+    great_grandchildren = get_great_grandchildren(person_id)
+    great_great_grandchildren = get_great_great_grandchildren(person_id)
     ancestors = get_ancestors(person_id)
+    descendants = get_descendants(person_id)
 
     return render_template(
         "person_detail.html",
@@ -1132,7 +1142,11 @@ def person_detail(person_id):
         grandparents=grandparents,
         great_grandparents=great_grandparents,
         great_great_grandparents=great_great_grandparents,
+        grandchildren=grandchildren,
+        great_grandchildren=great_grandchildren,
+        great_great_grandchildren=great_great_grandchildren,
         ancestors=ancestors,
+        descendants=descendants,
         images=images,
         videos=videos,
         audio_files=audio_files,
@@ -1175,6 +1189,7 @@ def edit_person(person_id):
         death_day = to_int_or_none(request.form.get("death_day"))
 
         gender = request.form.get("gender") or None
+        status = request.form.get("status") or "unknown"
         notes = request.form.get("notes") or None
 
         # First name is still required when updating a person
@@ -1193,6 +1208,7 @@ def edit_person(person_id):
             birth_year, birth_month, birth_day,
             death_year, death_month, death_day,
             gender,
+            status,
             notes
         )
         return redirect(url_for("person_detail", person_id=person_id, tree_id=tree_id))
@@ -1815,7 +1831,7 @@ def api_tree():
             birth_date, death_date,
             birth_year, birth_month, birth_day,
             death_year, death_month, death_day,
-            gender, notes, tree_id, photo_filename
+            gender, status, notes, tree_id, photo_filename
         FROM persons
         WHERE tree_id = ?
     """, (tree_id,)).fetchall()

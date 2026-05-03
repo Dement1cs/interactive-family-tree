@@ -99,7 +99,7 @@ def add_person(first_name, middle_name=None, last_name=None, maiden_name=None,
                birth_date=None, death_date=None,
                birth_year=None, birth_month=None, birth_day=None,
                death_year=None, death_month=None, death_day=None,
-               gender=None, notes=None, tree_id=None):
+               gender=None, status="unknown", notes=None, tree_id=None):
     """Insert a new person into the persons table."""
 
     conn = get_db()
@@ -114,16 +114,16 @@ def add_person(first_name, middle_name=None, last_name=None, maiden_name=None,
             birth_date, death_date,
             birth_year, birth_month, birth_day,
             death_year, death_month, death_day,
-            gender, notes, tree_id
+            gender, status, notes, tree_id
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             first_name, middle_name, last_name, maiden_name,
             birth_date, death_date,
             birth_year, birth_month, birth_day,
             death_year, death_month, death_day,
-            gender, notes, tree_id
+            gender, status, notes, tree_id
         )
     )
 
@@ -136,7 +136,7 @@ def update_person(person_id, first_name, middle_name=None, last_name=None, maide
                   birth_date=None, death_date=None,
                   birth_year=None, birth_month=None, birth_day=None,
                   death_year=None, death_month=None, death_day=None,
-                  gender=None, notes=None):
+                  gender=None, status="unknown", notes=None):
     """Update the editable fields of an existing person."""
 
     conn = get_db()
@@ -151,7 +151,7 @@ def update_person(person_id, first_name, middle_name=None, last_name=None, maide
             birth_date = ?, death_date = ?,
             birth_year = ?, birth_month = ?, birth_day = ?,
             death_year = ?, death_month = ?, death_day = ?,
-            gender = ?, notes = ?
+            gender = ?, status = ?, notes = ?
         WHERE id = ?
         """,
         (
@@ -159,7 +159,7 @@ def update_person(person_id, first_name, middle_name=None, last_name=None, maide
             birth_date, death_date,
             birth_year, birth_month, birth_day,
             death_year, death_month, death_day,
-            gender, notes, person_id
+            gender, status, notes, person_id
         )
     )
 
@@ -804,6 +804,102 @@ def get_ancestors(person_id, min_level=5, max_level=10):
                 all_ancestors.append(row)
 
     return all_ancestors
+
+# --- get_descendants_by_level -----------------------------
+def get_descendants_by_level(person_id, level):
+    """Return descendants for a person at the requested generation depth."""
+
+    # Level must be at least 1:
+    # 1 = children, 2 = grandchildren, 3 = great-grandchildren, etc.
+    # Уровень должен быть не меньше 1:
+    # 1 = дети, 2 = внуки, 3 = правнуки и т.д.
+    if level < 1:
+        return []
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    # Start from the selected person and move generation by generation downward
+    # Начать с выбранного человека и двигаться вниз по поколениям
+    current_ids = {person_id}
+    rows = []
+
+    for _ in range(level):
+        if not current_ids:
+            conn.close()
+            return []
+
+        # Build placeholders for the current set of parent ids
+        # Сформировать placeholders для текущего набора id родителей
+        placeholders = ",".join("?" for _ in current_ids)
+
+        # In parent relations:
+        # person_id = parent, relative_id = child
+        # В связях parent:
+        # person_id = родитель, relative_id = ребёнок
+        rows = cur.execute(f"""
+            SELECT DISTINCT p.*
+            FROM relationships r
+            JOIN persons p ON p.id = r.relative_id
+            WHERE r.relation_type = 'parent'
+              AND r.person_id IN ({placeholders})
+        """, tuple(current_ids)).fetchall()
+
+        # Use the found children as the next generation to continue downward
+        # Использовать найденных детей как следующее поколение для движения вниз
+        current_ids = {row["id"] for row in rows}
+
+    conn.close()
+    return rows
+
+
+# --- get_grandchildren -----------------------------------
+def get_grandchildren(person_id):
+    """Return the grandchildren of the selected person."""
+
+    # Grandchildren are descendants two levels below:
+    # person -> child -> grandchild
+    # Внуки — это потомки на два уровня ниже:
+    # человек -> ребёнок -> внук
+    return get_descendants_by_level(person_id, 2)
+
+
+# --- get_great_grandchildren -----------------------------
+def get_great_grandchildren(person_id):
+    """Return the great-grandchildren of the selected person."""
+
+    # Great-grandchildren are descendants three levels below
+    # Правнуки — это потомки на три уровня ниже
+    return get_descendants_by_level(person_id, 3)
+
+
+# --- get_great_great_grandchildren -----------------------
+def get_great_great_grandchildren(person_id):
+    """Return the great-great-grandchildren of the selected person."""
+
+    # Great-great-grandchildren are descendants four levels below
+    # Праправнуки — это потомки на четыре уровня ниже
+    return get_descendants_by_level(person_id, 4)
+
+# --- get_descendants -------------------------------------
+def get_descendants(person_id, min_level=5, max_level=10):
+    """Return descendants beyond the explicitly listed generations."""
+
+    # Collect descendants starting from deeper generations:
+    # 5 = beyond great-great-grandchildren
+    # Собрать потомков, начиная с более глубоких поколений:
+    # 5 = дальше праправнуков
+    all_descendants = []
+    seen_ids = set()
+
+    for level in range(min_level, max_level + 1):
+        rows = get_descendants_by_level(person_id, level)
+        for row in rows:
+            if row["id"] not in seen_ids:
+                seen_ids.add(row["id"])
+                all_descendants.append(row)
+
+    return all_descendants
 
 # =========================================================
 # media queries

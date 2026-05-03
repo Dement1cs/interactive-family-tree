@@ -37,7 +37,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="maiden_name">Maiden name</label>
+                    <label for="maiden_name">Birth name</label>
                     <input type="text" id="maiden_name" name="maiden_name" value="{{ person['maiden_name'] or '' }}">
                 </div>
 
@@ -47,6 +47,13 @@
                         <option value="" {% if not person['gender'] %}selected{% endif %}>-- choose --</option>
                         <option value="male" {% if person['gender'] == 'male' %}selected{% endif %}>Male</option>
                         <option value="female" {% if person['gender'] == 'female' %}selected{% endif %}>Female</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="status">Status</label>
+                    <select id="status" name="status">
+                        <option value="unknown" {% if person['status'] == 'unknown' or not person['status'] %}selected{% endif %}>Unknown</option>
+                        <option value="deceased" {% if person['status'] == 'deceased' %}selected{% endif %}>Deceased</option>
                     </select>
                 </div>
             </div>

@@ -140,8 +140,8 @@
           new go.Binding("text", "fullName")
         ),
 
-        // Maiden name if present
-        // Девичья фамилия, если указана
+        // Birth name if present
+        // Имя при рождении, если указано
         $(go.TextBlock,
           {
             row: 1,
@@ -321,11 +321,17 @@
     // Convert server-side person records into GoJS node objects
     // Преобразовать записи людей с сервера в объекты узлов GoJS
     const personNodes = persons.map(p => {
-      const fullName = (
+      const baseFullName = (
         `${p.first_name || ""} ${p.middle_name || ""} ${p.last_name || ""}`
       ).replace(/\s+/g, " ").trim() || `Person #${p.id}`;
 
-      const maidenLine = p.maiden_name ? `maiden: ${p.maiden_name}` : "";
+      // Add a small deceased marker next to the name when applicable
+      // Добавить небольшой маркер deceased рядом с именем, если применимо
+      const fullName = p.status === "deceased"
+        ? `${baseFullName} †`
+        : baseFullName;
+
+      const maidenLine = p.maiden_name ? `born as: ${p.maiden_name}` : "";
 
       const birthDisplay = formatShortDate(
         p.birth_year, p.birth_month, p.birth_day, p.birth_date
@@ -335,6 +341,12 @@
         p.death_year, p.death_month, p.death_day, p.death_date
       );
 
+      // Show known birth/death dates only.
+      // If the person is deceased but the death date is unknown,
+      // the † marker in the name already communicates that state.
+      // Показывать только известные даты рождения/смерти.
+      // Если человек deceased, но дата смерти неизвестна,
+      // это уже показывается через † рядом с именем.
       const lifeLine = [birthDisplay, deathDisplay].filter(Boolean).join(" - ");
 
       const initials = (
@@ -353,7 +365,8 @@
         lifeLine,
         initials,
         photoSrc,
-        gender: (p.gender || "").toLowerCase()
+        gender: (p.gender || "").toLowerCase(),
+        status: (p.status || "unknown").toLowerCase()
       };
     });
 
