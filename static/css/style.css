@@ -856,3 +856,36 @@ h1, h2, h3, h4 {
     border-radius: 12px;
     background: var(--surface-soft);
 }
+
+/* ========== Access Management Page ========================================== */
+.access-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+    gap: 18px;
+    margin-bottom: 28px;
+}
+
+.access-card {
+    min-height: 100%;
+}
+
+.role-guide-item {
+    border-top: 1px solid var(--border-soft);
+    padding-top: 12px;
+    margin-top: 12px;
+}
+
+.role-guide-item:first-of-type {
+    border-top: 0;
+    padding-top: 0;
+}
+
+.role-guide-item h4 {
+    margin: 0 0 6px 0;
+}
+
+@media (max-width: 800px) {
+    .access-layout {
+        grid-template-columns: 1fr;
+    }
+}

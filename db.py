@@ -130,8 +130,12 @@ def add_person(first_name, middle_name=None, last_name=None, maiden_name=None,
         )
     )
 
+    person_id = cur.lastrowid
+
     conn.commit()
     conn.close()
+
+    return person_id
 
 
 # --- update_person ---------------------------------------

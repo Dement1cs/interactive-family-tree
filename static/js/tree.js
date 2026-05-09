@@ -25,6 +25,12 @@
   const diagram = $(go.Diagram, "diagramDiv", {
     "undoManager.isEnabled": true,
 
+    // Allows the user to move around the diagram more freely
+    scrollMode: go.Diagram.InfiniteScroll,
+
+    // Adds extra empty space around the tree
+    padding: new go.Margin(250, 500, 250, 500),
+
     // Use layered layout so generations are arranged clearly
     // Использовать layered layout, чтобы поколения располагались наглядно
     layout: $(go.LayeredDigraphLayout, {

@@ -7,8 +7,13 @@
     <div class="person-topbar">
         <div class="person-topbar-left">
             <a class="btn-link" href="{{ url_for('dashboard') }}">Back to dashboard</a>
+
             {% if tree_id %}
                 <a class="btn-link" href="{{ url_for('persons', tree_id=tree_id) }}">Manage people</a>
+
+                {% if tree_role in ["owner", "editor"] %}
+                    <a class="btn-link" href="{{ url_for('add_person_route', tree_id=tree_id) }}">Add person</a>
+                {% endif %}
             {% endif %}
         </div>
 

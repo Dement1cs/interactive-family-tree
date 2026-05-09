@@ -4,20 +4,28 @@
 
 {% block content %}
 <div class="page-section">
-    <h2>Manage Access</h2>
-    <p class="muted">
-        Tree: <strong>{{ tree.title }}</strong>
-    </p>
-    <p class="muted">
-        Editors can add and edit people, relations, and photos.<br>
-        Viewers can only open and view the tree.
-    </p>
+    <div class="person-topbar">
+        <div class="person-topbar-left">
+            <a class="btn-link" href="{{ url_for('dashboard') }}">Back to dashboard</a>
+            <a class="btn-link" href="{{ url_for('tree', tree_id=tree.id) }}">Back to tree</a>
+        </div>
+    </div>
 </div>
 
 <div class="page-section">
-    <div class="tree-card">
+    <h2>Manage Access — {{ tree.title }}</h2>
+    <p class="muted">
+        Share this family tree with other registered users and control what they can do.
+    </p>
+</div>
+
+<div class="access-layout">
+    <div class="tree-card access-card">
         <div class="tree-card-body">
-            <h4 class="tree-card-title">Grant access</h4>
+            <h3 class="tree-card-title">Grant access</h3>
+            <p class="muted">
+                Enter the email address of an existing user and choose their access role.
+            </p>
 
             {% if error %}
                 <p class="error-text">{{ error }}</p>
@@ -25,26 +33,46 @@
 
             <form action="{{ url_for('manage_tree_access', tree_id=tree.id) }}"
                   method="post"
-                  class="access-form">
+                  class="stack-form">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                 <div class="form-group">
-                    <label for="email">User email</label><br>
+                    <label for="email">User email</label>
                     <input type="email" id="email" name="email" placeholder="user@example.com" required>
                 </div>
 
                 <div class="form-group">
-                    <label for="role">Role</label><br>
+                    <label for="role">Role</label>
                     <select id="role" name="role">
                         <option value="editor">Editor</option>
                         <option value="viewer">Viewer</option>
                     </select>
                 </div>
 
-                <div class="form-group">
+                <div class="form-actions">
                     <button type="submit" class="btn">Grant access</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <div class="tree-card access-card">
+        <div class="tree-card-body">
+            <h3 class="tree-card-title">Role guide</h3>
+
+            <div class="role-guide-item">
+                <h4>Editor</h4>
+                <p class="muted">
+                    Can view the tree, add and edit people, manage relationships, and upload media.
+                </p>
+            </div>
+
+            <div class="role-guide-item">
+                <h4>Viewer</h4>
+                <p class="muted">
+                    Can only view the tree and open person profiles.
+                </p>
+            </div>
         </div>
     </div>
 </div>
@@ -94,11 +122,9 @@
             {% endfor %}
         </div>
     {% else %}
-        <p class="muted">No shared users yet.</p>
+        <div class="tree-card">
+            <p class="muted">No users have access to this tree yet.</p>
+        </div>
     {% endif %}
 </div>
-
-<p>
-    <a class="btn-link" href="{{ url_for('dashboard') }}">Back to dashboard</a>
-</p>
 {% endblock %}

@@ -763,11 +763,14 @@ def tree():
     # Подготовить безопасный запасной заголовок для экспорта и отображения страницы
     tree_title = current_tree.title if current_tree and current_tree.title else "family-tree"
 
+    tree_role = get_tree_role_for_current_user(tree_id)
+
     return render_template(
         "tree.html",
         tree_id=tree_id,
         current_tree=current_tree,
-        tree_title=tree_title
+        tree_title=tree_title,
+        tree_role=tree_role
     )
 
 # ------- persons роут ------------------------------------
@@ -1074,7 +1077,7 @@ def add_person_route():
         if not first_name:
             return "First name is required", 400
 
-        add_person(
+        new_person_id = add_person(
             first_name,
             middle_name,
             last_name,
@@ -1088,7 +1091,8 @@ def add_person_route():
             notes,
             tree_id
         )
-        return redirect(url_for("persons", tree_id=tree_id))
+
+        return redirect(url_for("person_detail", person_id=new_person_id, tree_id=tree_id))
 
     return render_template("person_add.html", tree_id=tree_id)
 
