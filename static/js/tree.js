@@ -49,6 +49,8 @@
 
   // Person node template
   // Шаблон узла человека
+  
+
   diagram.nodeTemplate =
     $(go.Node, "Auto",
       {
@@ -85,7 +87,7 @@
       // Табличное размещение элементов внутри карточки человека
       $(go.Panel, "Table",
         {
-          margin: 10,
+          margin: 7,
           defaultAlignment: go.Spot.Left
         },
 
@@ -97,34 +99,63 @@
             column: 0,
             rowSpan: 3,
             margin: new go.Margin(0, 12, 0, 0),
-            width: 46,
-            height: 46
+            width: 75,
+            height: 75
           },
 
+          // Visible rounded background and border
+          // Видимый закруглённый фон и рамка
           $(go.Shape, "RoundedRectangle",
             {
-              width: 46,
-              height: 46,
+              width: 75,
+              height: 75,
               parameter1: 8,
               fill: "#eef2f7",
               stroke: "#cbd5e1"
             }
           ),
 
+        // Clipping panel for the real image only
+        // Панель обрезки только для реальной картинки
+        $(go.Panel, "Spot",
+          {
+            width: 75,
+            height: 75,
+            isClipping: true
+          },
+
+          $(go.Shape, "RoundedRectangle",
+            {
+              width: 75,
+              height: 75,
+              parameter1: 8,
+              fill: "white",
+              strokeWidth: 0,
+              isPanelMain: true
+            }
+          ),
+
           $(go.Picture,
             {
-              width: 46,
-              height: 46,
+              width: 75,
+              height: 75,
               imageStretch: go.GraphObject.UniformToFill
             },
             new go.Binding("source", "photoSrc"),
             new go.Binding("visible", "photoSrc", v => !!v)
           ),
 
+            new go.Binding("visible", "photoSrc", v => !!v)
+          ),
+
+          // Initials fallback, centered
+          // Заглушка с инициалами по центру
           $(go.TextBlock,
             {
+              alignment: go.Spot.Center,
               font: "bold 16px sans-serif",
-              stroke: "#475569"
+              stroke: "#475569",
+              textAlign: "center"
             },
             new go.Binding("text", "initials"),
             new go.Binding("visible", "photoSrc", v => !v)
@@ -137,10 +168,10 @@
           {
             row: 0,
             column: 1,
-            font: "bold 14px sans-serif",
+            font: "bold 17px sans-serif",
             stroke: "#111",
             margin: new go.Margin(0, 0, 6, 0),
-            maxSize: new go.Size(190, NaN),
+            maxSize: new go.Size(200, NaN),
             overflow: go.TextBlock.OverflowEllipsis
           },
           new go.Binding("text", "fullName")
@@ -152,7 +183,7 @@
           {
             row: 1,
             column: 1,
-            font: "11px sans-serif",
+            font: "15px sans-serif",
             stroke: "#555",
             margin: new go.Margin(0, 0, 4, 0),
             maxSize: new go.Size(190, NaN),
@@ -465,7 +496,7 @@
     // Fit the tree to the screen and zoom out slightly for better overview
     // Вписать дерево в экран и немного уменьшить масштаб для лучшего обзора
     diagram.zoomToFit();
-    diagram.scale *= 0.9;
+    diagram.scale *= 1.1;
 
   } catch (err) {
     console.error("Tree rendering error:", err);
@@ -485,16 +516,34 @@
   if (exportBtn) {
     exportBtn.addEventListener("click", () => {
       try {
-        // Generate image data from the current diagram
-        // Сгенерировать изображение на основе текущей диаграммы
+        const bounds = diagram.documentBounds.copy();
+
+        // Extra empty space around the exported tree
+        bounds.inflate(100, 100);
+
+        // Larger maximum export size
+        const maxWidth = 16000;
+        const maxHeight = 16000;
+
+        // Higher scale = better image quality
+        // 1 = normal, 2 = high quality, 3 = very high but heavy
+        const desiredScale = 2;
+
+        const scale = Math.min(
+          desiredScale,
+          maxWidth / bounds.width,
+          maxHeight / bounds.height
+        );
+
         const imageData = diagram.makeImageData({
           background: "white",
-          scale: 1
+          bounds: bounds,
+          scale: scale,
+          maxSize: new go.Size(maxWidth, maxHeight)
         });
 
-        // Build a safe filename based on the current tree title
-        // Сформировать безопасное имя файла на основе названия текущего дерева
         const link = document.createElement("a");
+
         const treeTitle =
           (window.CURRENT_TREE_TITLE || "family-tree")
             .toLowerCase()
@@ -503,6 +552,7 @@
 
         link.href = imageData;
         link.download = `${treeTitle}.png`;
+
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
