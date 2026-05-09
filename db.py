@@ -21,17 +21,20 @@ def get_db():
 
 def init_db():
     """Initialize the local SQLite database from schema.sql."""
-
-    # Open a connection to the local data database
-    # Открыть соединение с локальной базой данных
     conn = get_db()
 
-    # Read the SQL schema file and execute it as a script
-    # Прочитать SQL-схему из файла и выполнить её как единый скрипт
     with open("schema.sql", "r", encoding="utf-8") as f:
         sql = f.read()
 
     conn.executescript(sql)
+
+    cur = conn.cursor()
+    cur.execute("PRAGMA table_info(persons)")
+    columns = [row["name"] for row in cur.fetchall()]
+
+    if "status" not in columns:
+        cur.execute("ALTER TABLE persons ADD COLUMN status TEXT DEFAULT 'unknown'")
+
     conn.commit()
     conn.close()
 
